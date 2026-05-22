@@ -77,16 +77,17 @@ init_language() {
     
     if [ -z "$LANG" ]; then
         while true; do
-            show_message "Выберите язык / Select language [1/2]:"
+            show_message "Выберите язык / Select language / 选择语言 [1/2/3]:"
             show_message "1. Русский (Russian)"
             show_message "2. English (Английский)"
-            read_input " Ваш выбор / Your choice [1/2]: " LANG
+            show_message "3. 中文 (Chinese)"
+            read_input " Ваш выбор / Your choice / 你的选择 [1/2/3]: " LANG
             case "$LANG" in
-                1|2)
+                1|2|3)
                     break
                     ;;
                 *)
-                    show_error "Неверный выбор / Invalid choice"
+                    show_error "Неверный выбор / Invalid choice / 选择无效"
                     ;;
             esac
         done
@@ -151,6 +152,65 @@ init_language() {
             MSG_SERVICE_RELOADED="Конфигурация sing-box обновлена"
             MSG_BACKUP_CONFIGS="Сохранение резервных конфигов..."
             MSG_RESTORE_CONFIGS="Восстановление резервных конфигов..."
+            ;;
+        3)
+            MSG_INSTALL_TITLE="开始! ($script_name)"
+            MSG_UPDATE_PKGS="正在更新软件包并安装依赖..."
+            MSG_DEPS_SUCCESS="依赖安装成功"
+            MSG_DEPS_ERROR="依赖安装失败"
+            MSG_INSTALL_UI="开始安装 singbox-ui..."
+            MSG_CHOOSE_VERSION="请选择要安装的 singbox-ui 版本:"
+            MSG_OPTION_1="1) Latest (~150 KB)"
+            MSG_OPTION_2="2) Lite 版本 (~6 KB)（不再支持，旧版本，无新功能）"
+            MSG_OPTION_3="3) Pre-release（测试版，可能有问题）"
+            MSG_OPTION_4="4) Pull Request Runner 构建（测试）"
+            MSG_INVALID_CHOICE="选择无效"
+            MSG_INSTALL_COMPLETE="安装完成"
+            MSG_CLEANUP="清理文件..."
+            MSG_CLEANUP_DONE="文件已删除!"
+            MSG_SELECT_RUNNER="请选择要安装的 Runner 构建:"
+            MSG_NO_PRE_RELEASE="无法获取 pre-release，改用 latest。"
+            MSG_RUNNER_INDEX_UNAVAILABLE="无法加载 runner 构建列表（index.txt）。"
+            MSG_RUNNER_LIST_EMPTY="runner 构建列表为空。"
+            MSG_INSTALL_LATEST="正在安装 latest 稳定版本"
+            MSG_DOWNLOAD_ERROR="下载失败，安装已中止。"
+            MSG_CLEANUP_LIB="清理库文件..."
+            MSG_WAITING="等待 %d 秒"
+            MSG_YOUR_CHOICE="你的选择: "
+            MSG_COMPLETE="完成! ($script_name)"
+            MSG_CONFIG_MENU="配置输入:"
+            MSG_CONFIG_MENU_1="1) 输入配置 URL"
+            MSG_CONFIG_MENU_2="2) 跳过"
+            MSG_CONFIG_MENU_CHOICE=" 你的选择: "
+            MSG_CONFIG_PROMPT="请输入配置 URL（直接回车为手动输入）: "
+            MSG_CONFIG_LOADING="正在从 %s 加载配置（第 %s/%s 次）"
+            MSG_CONFIG_SUCCESS="配置加载成功"
+            MSG_CONFIG_ERROR="加载错误: %s"
+            MSG_FORMAT_ERROR="配置格式错误"
+            MSG_RETRY="正在重试..."
+            MSG_MANUAL_CONFIG="手动配置"
+            MSG_EDIT_COMPLETE="是否完成 config.json 编辑? [y/N]: "
+            MSG_EDIT_SUCCESS="成功"
+            MSG_INVALID_INPUT="输入无效"
+            MSG_REPEAT_INPUT="请重新输入"
+            MSG_OPERATION="请选择安装操作:"
+            MSG_OPERATION_INSTALL="1. 安装"
+            MSG_OPERATION_DELETE="2. 删除"
+            MSG_OPERATION_REINSTALL_UPDATE="3. 重装/更新"
+            MSG_OPERATION_CHOICE="你的选择: "
+            MSG_ALREADY_INSTALLED="错误: 软件包已安装。如果由本脚本安装，请选择重装 (3)，否则请重置路由器。"
+            MSG_UNINSTALLING="正在卸载 singbox-ui..."
+            MSG_UNINSTALL_EXISTING_FILES="正在删除现有 singbox-ui 文件..."
+            MSG_UNINSTALL_SUCCESS="卸载完成"
+            MSG_NOT_INSTALLED="错误: 软件包未安装，无需删除。"
+            MSG_INVALID_OPERATION="错误: 操作无效"
+            MSG_NETWORK_CHECK="正在检查网络可用性..."
+            MSG_NETWORK_SUCCESS="网络可用（通过 %s，耗时 %s 秒）"
+            MSG_NETWORK_ERROR="%s 秒后网络仍不可用!"
+            MSG_RELOAD_SERVICE="重新加载 sing-box 配置..."
+            MSG_SERVICE_RELOADED="sing-box 配置已重载"
+            MSG_BACKUP_CONFIGS="正在备份配置..."
+            MSG_RESTORE_CONFIGS="正在恢复备份配置..."
             ;;
         *)
             MSG_INSTALL_TITLE="Starting! ($script_name)"

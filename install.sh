@@ -49,16 +49,17 @@ init_language() {
 
     if [ -z "$LANG" ]; then
         while true; do
-            show_message "Выберите язык / Select language [1/2]:"
+            show_message "Выберите язык / Select language / 选择语言 [1/2/3]:"
             show_message "1. Русский (Russian)"
             show_message "2. English (Английский)"
-            read_input " Ваш выбор / Your choice [1/2]: " LANG
+            show_message "3. 中文 (Chinese)"
+            read_input " Ваш выбор / Your choice / 你的选择 [1/2/3]: " LANG
             case "$LANG" in
-                1|2)
+                1|2|3)
                     break
                     ;;
                 *)
-                    show_error "Неверный выбор / Invalid choice"
+                    show_error "Неверный выбор / Invalid choice / 选择无效"
                     ;;
             esac
         done
@@ -74,6 +75,16 @@ init_language() {
         MSG_CLEANUP="Очистка файлов..."
         MSG_CLEANUP_DONE="Файлы удалены!"
         MSG_WAITING="Ожидание %d сек"
+        ;;
+    3)
+        MSG_INSTALL_TITLE="开始! ($script_name)"
+        MSG_COMPLETE="完成! ($script_name)"
+        MSG_FINISHED="所有步骤已完成!"
+        MSG_INSTALL="正在进入安装脚本..."
+        MSG_CLEANUP_LIB="清理库文件..."
+        MSG_CLEANUP="清理文件..."
+        MSG_CLEANUP_DONE="文件已删除!"
+        MSG_WAITING="等待 %d 秒"
         ;;
     *)
         MSG_INSTALL_TITLE="Starting! ($script_name)"

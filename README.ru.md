@@ -1,22 +1,22 @@
-# luci-app-singbox-ui
+﻿# luci-app-singbox-ui
 
-[Read in English](./README.md)
+[English](./README.md) | [中文](./README.zh.md)
 
 Веб-интерфейс для управления Sing-Box на OpenWrt 23/24/25.
 
 ## Предупреждение
-> Этот проект предназначен **исключительно для образовательных и исследовательских целей**.  
-> Автор **не несет ответственности** за распространение, неправильное использование, поломку устройств или иные последствия.  
-> Вы используете проект **на свой страх и риск**. Коммерческое или вредоносное использование **не поощряется**.
+> Проект предназначен только для образовательных и исследовательских целей.
+> Автор не несет ответственности за неправильное использование, поломку устройств и любые последствия.
+> Использование на ваш страх и риск.
 
 ## Скриншот
 <img width="972" height="858" alt="Скриншот luci-app-singbox-ui" src="https://github.com/user-attachments/assets/026aca3e-ba20-479a-b8bd-3e42344f9eff" />
 
 ## Возможности
-- Запуск, остановка и перезапуск сервиса Sing-Box
+- Запуск, остановка и перезапуск Sing-Box
 - Добавление подписок по URL или вручную через JSON
 - Хранение и редактирование нескольких конфигов в браузере
-- Автоматическое обновление сервиса Sing-Box
+- Автообновление сервиса Sing-Box
 - Проверка состояния сервиса и бинарника
 - Автоперезапуск при нехватке памяти
 
@@ -26,17 +26,10 @@ wget -O /root/install.sh https://raw.githubusercontent.com/ang3el7z/luci-app-sin
 ```
 
 После запуска скрипта:
-1. Выберите режим:
-- `Singbox-ui`
-- `Singbox (tproxy/tun mode)`
-- `Singbox (tproxy/tun mode) + singbox-ui`
-2. Выберите действие:
-- `Установить`
-- `Удалить`
-- `Переустановить / Обновить`
+1. Выберите режим (`Singbox-ui`, `Singbox` или оба сразу)
+2. Выберите операцию (`Установка`, `Удаление`, `Переустановка/Обновление`)
 
 ## Быстрые подсказки
-
 Очистить старый SSH-ключ:
 ```bash
 ssh-keygen -R 192.168.1.1
@@ -49,13 +42,13 @@ ssh root@192.168.1.1
 
 Если страница LuCI не появилась после установки, выполните жесткое обновление страницы в браузере.
 
-## Шаблоны конфигураций
+## Шаблоны конфигурации
 - [openwrt-template](https://raw.githubusercontent.com/ang3el7z/luci-app-singbox-ui/main/other/file/openwrt-template.json)
 - [openwrt-template-tproxy](https://raw.githubusercontent.com/ang3el7z/luci-app-singbox-ui/main/other/file/openwrt-template-tproxy.json)
 - [Sing-Box Configuration](https://sing-box.sagernet.org/configuration/)
 
 ## Вклад
-Issue и pull request приветствуются.
+Issues и pull request приветствуются.
 
 ## Лицензия
 GNU General Public License v2.0 (GPL-2.0-only). См. [LICENSE](./LICENSE).
