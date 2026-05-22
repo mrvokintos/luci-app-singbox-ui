@@ -1,1 +1,1 @@
-luci-app-singbox-ui-pr-73-fix-tproxy-mode-switch-behavior-and-fw4-include-placement-20260414-0946.apk
+luci-app-singbox-ui-pr-81-embed-i18n-into-main-package-add-chinese-docs-scripts-20260522-1539.apk
