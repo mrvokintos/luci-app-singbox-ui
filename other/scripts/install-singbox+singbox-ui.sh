@@ -114,6 +114,11 @@ init_language() {
         MSG_INSTALL_SINGBOX="2. Singbox"
         MSG_INSTALL_SINGBOX_UI_AND_SINGBOX="3. Singbox and singbox-ui"
         MSG_INSTALL_ACTION_CHOICE=" Ваш выбор: "
+        MSG_SINGBOX_CHOOSE="Выберите сборку ядра sing-box:"
+        MSG_SINGBOX_OPTION1="1) Original — SagerNet/sing-box (по умолчанию)"
+        MSG_SINGBOX_OPTION2="2) Extended — shtorm-7/sing-box-extended"
+        MSG_SINGBOX_OPTION3="3) Clean — mrvokintos/sing-box-extended"
+        MSG_SINGBOX_PROMPT="Введите ваш выбор [1-3, Enter=1]:"
         MSG_OPERATION="Выберите тип операции:"
         MSG_OPERATION_INSTALL="1. Установка"
         MSG_OPERATION_DELETE="2. Удаление"
@@ -145,6 +150,11 @@ init_language() {
         MSG_INSTALL_SINGBOX="2. Singbox"
         MSG_INSTALL_SINGBOX_UI_AND_SINGBOX="3. Singbox and singbox-ui"
         MSG_INSTALL_ACTION_CHOICE="Your choice: "
+        MSG_SINGBOX_CHOOSE="Choose the sing-box core build:"
+        MSG_SINGBOX_OPTION1="1) Original — SagerNet/sing-box (default)"
+        MSG_SINGBOX_OPTION2="2) Extended — shtorm-7/sing-box-extended"
+        MSG_SINGBOX_OPTION3="3) Clean — mrvokintos/sing-box-extended"
+        MSG_SINGBOX_PROMPT="Enter your choice [1-3, Enter=1]:"
         MSG_OPERATION="Select install operation:"
         MSG_OPERATION_INSTALL="1. Install"
         MSG_OPERATION_DELETE="2. Delete"
@@ -256,12 +266,36 @@ restore_backup_configs() {
 }
 
 # Установка singbox / Install singbox
+choose_singbox_core() {
+    [ "$OPERATION" = "2" ] && return 0
+    [ -n "$SINGBOX_INSTALL_MODE" ] && return 0
+
+    while true; do
+        show_message ""
+        show_message "$MSG_SINGBOX_CHOOSE"
+        show_message "$MSG_SINGBOX_OPTION1"
+        show_message "$MSG_SINGBOX_OPTION2"
+        show_message "$MSG_SINGBOX_OPTION3"
+        show_message ""
+        read_input "$MSG_SINGBOX_PROMPT" SINGBOX_INSTALL_MODE
+        SINGBOX_INSTALL_MODE="${SINGBOX_INSTALL_MODE:-1}"
+        case "$SINGBOX_INSTALL_MODE" in
+            1|2|3) return 0 ;;
+            *)
+                SINGBOX_INSTALL_MODE=""
+                show_error "$MSG_INVALID_INPUT. $MSG_REPEAT_INPUT"
+                ;;
+        esac
+    done
+}
+
 install_singbox_script() {
+    choose_singbox_core
     show_warning "$MSG_SINGBOX_INSTALL"
 
     wget -O /root/install-singbox.sh https://raw.githubusercontent.com/mrvokintos/luci-app-singbox-ui/$BRANCH/other/scripts/install-singbox.sh &&
     chmod 0755 /root/install-singbox.sh &&
-    LANG="$LANG" OPERATION="$OPERATION" BRANCH="$BRANCH" sh /root/install-singbox.sh
+    LANG="$LANG" OPERATION="$OPERATION" BRANCH="$BRANCH" SINGBOX_INSTALL_MODE="$SINGBOX_INSTALL_MODE" sh /root/install-singbox.sh
 
     show_warning "$MSG_SINGBOX_RETURN"
 }

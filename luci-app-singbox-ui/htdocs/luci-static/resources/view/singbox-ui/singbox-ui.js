@@ -6,7 +6,7 @@
 
 const DIR='/etc/sing-box', ACTIVE=DIR+'/config.json', TEMPLATE='/etc/singbox-ui/template.json', ACTIVE_META='/etc/singbox-ui/active-config', LOG_MARKER='/etc/singbox-ui/log-clear-marker';
 const BIN='/usr/bin/sing-box', SERVICE='/etc/init.d/sing-box', HELPER='/usr/libexec/singbox-ui-helper';
-const UI_VERSION='3.1.0';
+const UI_VERSION='3.1.1';
 const RU={
 'Configuration manager':'Менеджер конфигураций','Configs':'Конфиги','Generator':'Генератор','Template':'Шаблон','Logs':'Журнал',
 'Running':'Работает','Stopped':'Остановлен','Unavailable':'Недоступен','Start':'Запустить','Restart':'Перезапустить','Stop':'Остановить',
