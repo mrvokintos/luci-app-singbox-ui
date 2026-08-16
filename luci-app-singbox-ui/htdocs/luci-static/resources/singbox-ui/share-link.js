@@ -1,4 +1,5 @@
 'use strict';
+'require baseclass';
 
 function decode(value) {
 	try { return decodeURIComponent(value || ''); }
@@ -240,4 +241,4 @@ function parseShareLink(raw) {
 
 const api = { parseShareLink };
 if (typeof module !== 'undefined' && module.exports) module.exports = api;
-return api;
+return typeof baseclass !== 'undefined' ? baseclass.extend(api) : api;
