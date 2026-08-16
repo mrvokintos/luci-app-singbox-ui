@@ -20,6 +20,7 @@ Web interface for managing Sing-Box on OpenWrt 23/24/25.
 - Build generated configs from an editable routing/DNS template
 - Never overwrite configs in the background
 - Check service state and validate configs with the separately installed sing-box binary
+- Detect IPK/APK and OpenWrt architecture for Original, Extended, or Clean core builds
 
 ## Installation
 ```bash
@@ -29,6 +30,7 @@ wget -O /root/install.sh https://raw.githubusercontent.com/mrvokintos/luci-app-s
 After running script:
 1. Choose mode (`Singbox-ui`, `Singbox`, or both)
 2. Choose operation (`Install`, `Uninstall`, `Reinstall/Update`)
+3. When installing sing-box, choose `Original` (default), `Extended`, or the stripped-down `Clean` core
 
 ## Quick Tips
 Clear old SSH key:

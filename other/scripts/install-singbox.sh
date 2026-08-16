@@ -129,16 +129,10 @@ init_language() {
             MSG_SERVICE_CONFIG="Настройка системного сервиса..."
             MSG_SERVICE_APPLIED="Конфигурация сервиса применена"
             MSG_SERVICE_DISABLED="Сервис временно отключен"
-            MSG_CONFIG_RESET="Конфигурационный файл сброшен"
-            MSG_NETWORK_CONFIG="Создание сетевого интерфейса proxy..."
-            MSG_FIREWALL_CONFIG="Конфигурация правил фаервола..."
-            MSG_FIREWALL_APPLIED="Правила фаервола применены"
-            MSG_RESTART_FIREWALL="Перезапуск firewall..."
-            MSG_RESTART_NETWORK="Перезапуск network..."
+            MSG_CONFIG_RESET="Конфигурационный файл сохранён"
             MSG_CLEANUP_LIB="Очистка библиотек..."
             MSG_CLEANUP="Очистка файлов..."
             MSG_CLEANUP_DONE="Файлы удалены!"
-            MSG_WAITING="Ожидание %d сек"
             MSG_COMPLETE="Выполнено! ($script_name)"
             MSG_DISABLE_IPV6="Отключение IPv6..."
             MSG_IPV6_DISABLED="IPv6 отключен"
@@ -158,8 +152,6 @@ init_language() {
             MSG_INVALID_OPERATION="Ошибка: Некорректная операция"
             MSG_RESTORING_IPV6="Восстановление настроек IPv6..."
             MSG_IPV6_RESTORED="Настройки IPv6 восстановлены"
-            MSG_REMOVING_NETWORK_CONFIG="Удаление сетевого интерфейса proxy..."
-            MSG_REMOVING_FIREWALL_RULES="Удаление правил фаервола..."
             MSG_REMOVING_CONFIGS="Удаление конфигурационных файлов..."
             MSG_NETWORK_CHECK="Проверка доступности сети..."
             MSG_NETWORK_SUCCESS="Сеть доступна (через %s, за %s сек)"
@@ -170,8 +162,6 @@ init_language() {
             MSG_MODE_CHOICE="Ваш выбор: "
             MSG_INSTALLING_TPROXY_MODE="Установка TPROXY режима..."
             MSG_UNINSTALLING_TPROXY_MODE="Удаление TPROXY режима..."
-            MSG_TPROXY_ROUTE_SETUP="Настройка policy routing для TPROXY..."
-            MSG_TPROXY_ROUTE_CLEANUP="Удаление policy routing для TPROXY..."
             MSG_TPROXY_NFT_INSTALL="Установка nftables (nft) для TPROXY..."
             MSG_TPROXY_NFT_INSTALLED="nftables успешно установлен"
             MSG_TPROXY_NFT_ERROR="Не удалось установить nftables"
@@ -179,7 +169,6 @@ init_language() {
             MSG_PKG_INSTALLING="Установка пакета: %s..."
             MSG_PKG_INSTALLED="Пакет установлен: %s"
             MSG_PKG_INSTALL_ERROR="Не удалось установить пакет: %s"
-            MSG_TPROXY_RULE_APPLY_ERROR="Не удалось применить nft правила для TPROXY"
             MSG_INSTALLING_TUN_MODE="Установка TUN режима..."
             MSG_UNINSTALLING_TUN_MODE="Удаление TUN режима..."
             MSG_TUN_DEPS_INSTALL="Установка зависимостей для TUN режима..."
@@ -191,43 +180,19 @@ init_language() {
             MSG_INVALID_MODE_FOUND="Ошибка: Не найден режим для удаления."
             MSG_MODE_FOUND_TPROXY="Найден TPROXY режим"
             MSG_MODE_FOUND_TUN="Найден TUN режим"
-            MSG_NET_CHOOSE="Выберите способ перезапуска сети:"
-            MSG_NET_OPTION1="1) Безопасный reload (рекомендуется при работе через Wi-Fi или CMD/командной строке)"
-            MSG_NET_OPTION2="2) Полный restart сервиса (подходит для современных SSH-клиентов)"
-            MSG_NET_PROMPT="Ваш выбор [1/2] (2 дефолт): "
-            MSG_SINGBOX_CHOOSE="Выберите способ установки sing-box:"
-            MSG_SINGBOX_OPTION1="1) Установить последнюю версию из магазина"
-            MSG_SINGBOX_OPTION2="2) Ручная установка"
-            MSG_SINGBOX_PROMPT="Введите ваш выбор [1-2]:"
-            MSG_SINGBOX_MANUAL_INSTRUCTIONS="Инструкция по ручной установке:"
-            MSG_SINGBOX_MANUAL_STEP_1="1. Загрузите sing-box.ipk из вашего репозитория"
-            MSG_SINGBOX_MANUAL_STEP_2="2. Загрузите файл в папку /tmp на устройство OpenWrt"
-            MSG_SINGBOX_MANUAL_STEP_3="3. Нажмите 1 для продолжения установки"
-            MSG_SINGBOX_FILE_NOT_FOUND="Файлы sing-box*.${PKG_EXT} не найдены в /tmp!"
-            MSG_SINGBOX_UPLOAD_INSTRUCTIONS="Пожалуйста, загрузите файл сначала!"
-            MSG_SINGBOX_FILE_FOUND="Найден файл:"
-            MSG_SINGBOX_MULTIPLE_FILES_FOUND="Найдено несколько файлов. Выберите один:"
-            MSG_SINGBOX_SELECT_FILE="Выберите файл [1-N]:"
-            MSG_SINGBOX_CONFIRM_PROMPT="Установить выбранный файл? [1-Да, 2-Использовать магазин]:"
+            MSG_SINGBOX_CHOOSE="Выберите сборку ядра sing-box:"
+            MSG_SINGBOX_OPTION1="1) Original — SagerNet/sing-box (по умолчанию)"
+            MSG_SINGBOX_OPTION2="2) Extended — shtorm-7/sing-box-extended"
+            MSG_SINGBOX_OPTION3="3) Clean — mrvokintos/sing-box-extended"
+            MSG_SINGBOX_PROMPT="Введите ваш выбор [1-3, Enter=1]:"
+            MSG_SINGBOX_ARCH="Архитектура OpenWrt: %s, формат пакета: %s"
+            MSG_SINGBOX_RELEASE="Последний релиз %s: %s"
+            MSG_SINGBOX_ASSET_MISSING="В релизе %s нет пакета для архитектуры %s (%s)."
+            MSG_SINGBOX_RELEASE_ERROR="Не удалось определить последний релиз %s."
             MSG_INVALID_INPUT="Ошибка: Некорректный ввод"
-            MSG_SINGBOX_ERROR_OPTIONS="Выберите действие после ошибки:"
-            MSG_SINGBOX_TRY_ANOTHER_FILE="Попробовать другой файл"
-            MSG_SINGBOX_USE_STORE="Использовать магазин"
-            MSG_SINGBOX_EXIT="Выйти"
-            MSG_SINGBOX_ERROR_CHOICE="Ваш выбор [1-3]: "
-            MSG_SINGBOX_DOWNLOAD_MENU_OPTION1="1) Скачать sing-box из списка репозитория в /tmp"
-            MSG_SINGBOX_DOWNLOAD_MENU_OPTION2="2) $MSG_SINGBOX_USE_STORE"
-            MSG_SINGBOX_DOWNLOAD_MENU_OPTION3="3) Повторить поиск файла (ручная загрузка)"
-            MSG_SINGBOX_DOWNLOAD_PROMPT="Выберите действие [1-3]: "
-            MSG_SINGBOX_LIST_UNAVAILABLE="Список пакетов недоступен (ветка или сеть). Проверьте BRANCH и интернет."
-            MSG_SINGBOX_SELECT_PKG="Доступные пакеты sing-box (ветка: $BRANCH):"
-            MSG_SINGBOX_LIST_EMPTY="Нет подходящих пакетов sing-box в репозитории."
             MSG_SINGBOX_DOWNLOADING="Загрузка '%s' в /tmp..."
-            MSG_SINGBOX_DOWNLOAD_SUCCESS_FILE="Файл '%s' успешно загружен в /tmp."
-            MSG_SINGBOX_DOWNLOAD_ERROR_FILE="Не удалось скачать '%s'. Проверьте подключение к интернету."
             MSG_INVALID_INPUT="Ошибка: Некорректный ввод"
             MSG_REPEAT_INPUT="Повторите ввод"
-            MSG_INSTALL_SINGBOX_FILE="Установка выбранного файла sing-box..."
             MSG_IPV6_DISABLE_PROMPT="Отключить IPv6? [1-Да, 2-Нет] (по умолчанию: 1 - Отключить): "
             MSG_IPV6_SKIP="IPv6 оставлен без изменений"
             MSG_IPV6_RESTORE_CHECK="Проверка необходимости восстановления IPv6..."
@@ -247,16 +212,10 @@ init_language() {
             MSG_SERVICE_CONFIG="Configuring system service..."
             MSG_SERVICE_APPLIED="Service configuration applied"
             MSG_SERVICE_DISABLED="Service temporarily disabled"
-            MSG_CONFIG_RESET="Configuration file reset"
-            MSG_NETWORK_CONFIG="Creating proxy network interface..."
-            MSG_FIREWALL_CONFIG="Configuring firewall rules..."
-            MSG_FIREWALL_APPLIED="Firewall rules applied"
-            MSG_RESTART_FIREWALL="Restarting firewall..."
-            MSG_RESTART_NETWORK="Restarting network..."
+            MSG_CONFIG_RESET="Configuration file preserved"
             MSG_CLEANUP_LIB="Cleaning library..."
             MSG_CLEANUP="Cleaning up files..."
             MSG_CLEANUP_DONE="Files removed!"
-            MSG_WAITING="Waiting %d sec"
             MSG_COMPLETE="Done! ($script_name)"
             MSG_DISABLE_IPV6="Disabling IPv6..."
             MSG_IPV6_DISABLED="IPv6 disabled"
@@ -276,8 +235,6 @@ init_language() {
             MSG_INVALID_OPERATION="Error: Invalid operation"
             MSG_RESTORING_IPV6="Restoring IPv6 settings..."
             MSG_IPV6_RESTORED="IPv6 settings restored"
-            MSG_REMOVING_NETWORK_CONFIG="Removing proxy network interface..."
-            MSG_REMOVING_FIREWALL_RULES="Removing firewall rules..."
             MSG_REMOVING_CONFIGS="Removing configuration files..."
             MSG_NETWORK_CHECK="Checking network availability..."
             MSG_NETWORK_SUCCESS="Network available (via %s, in %s sec)"
@@ -288,8 +245,6 @@ init_language() {
             MSG_MODE_CHOICE="Your choice: "
             MSG_INSTALLING_TPROXY_MODE="Installing TPROXY mode..."
             MSG_UNINSTALLING_TPROXY_MODE="Uninstalling TPROXY mode..."
-            MSG_TPROXY_ROUTE_SETUP="Configuring TPROXY policy routing..."
-            MSG_TPROXY_ROUTE_CLEANUP="Removing TPROXY policy routing..."
             MSG_TPROXY_NFT_INSTALL="Installing nftables (nft) for TPROXY..."
             MSG_TPROXY_NFT_INSTALLED="nftables installed successfully"
             MSG_TPROXY_NFT_ERROR="Failed to install nftables"
@@ -297,7 +252,6 @@ init_language() {
             MSG_PKG_INSTALLING="Installing package: %s..."
             MSG_PKG_INSTALLED="Package installed: %s"
             MSG_PKG_INSTALL_ERROR="Failed to install package: %s"
-            MSG_TPROXY_RULE_APPLY_ERROR="Failed to apply nft rules for TPROXY"
             MSG_INSTALLING_TUN_MODE="Installing TUN mode..."
             MSG_UNINSTALLING_TUN_MODE="Uninstalling TUN mode..."
             MSG_TUN_DEPS_INSTALL="Installing TUN mode dependencies..."
@@ -309,43 +263,19 @@ init_language() {
             MSG_INVALID_MODE_FOUND="Error: Mode not found for removal."
             MSG_MODE_FOUND_TPROXY="TPROXY mode found"
             MSG_MODE_FOUND_TUN="TUN mode found"
-            MSG_NET_CHOOSE="Choose the network restart method:"
-            MSG_NET_OPTION1="1) Safe reload (recommended when connected via Wi-Fi or CMD/Command Prompt)"
-            MSG_NET_OPTION2="2) Full network service restart (suitable for modern SSH clients)"
-            MSG_NET_PROMPT="Your choice [1/2] (2 default): "
-            MSG_SINGBOX_CHOOSE="Choose sing-box installation method:"
-            MSG_SINGBOX_OPTION1="1) Install latest version from store"
-            MSG_SINGBOX_OPTION2="2) Manual install"
-            MSG_SINGBOX_PROMPT="Enter your choice [1-2]:"
-            MSG_SINGBOX_MANUAL_INSTRUCTIONS="Manual Installation Instructions:"
-            MSG_SINGBOX_MANUAL_STEP_1="1. Download the sing-box.ipk from your repository"
-            MSG_SINGBOX_MANUAL_STEP_2="2. Upload the file to the /tmp folder on your OpenWrt device"
-            MSG_SINGBOX_MANUAL_STEP_3="3. Press 1 to continue the installation"
-            MSG_SINGBOX_FILE_NOT_FOUND="No sing-box*.${PKG_EXT} files found in /tmp!"
-            MSG_SINGBOX_UPLOAD_INSTRUCTIONS="Please upload the file first!"
-            MSG_SINGBOX_FILE_FOUND="File found:"
-            MSG_SINGBOX_MULTIPLE_FILES_FOUND="Multiple files found. Please select one:"
-            MSG_SINGBOX_SELECT_FILE="Select file [1-N]:"
-            MSG_SINGBOX_CONFIRM_PROMPT="Install the selected file? [1-Yes, 2-Use store]:"
+            MSG_SINGBOX_CHOOSE="Choose the sing-box core build:"
+            MSG_SINGBOX_OPTION1="1) Original — SagerNet/sing-box (default)"
+            MSG_SINGBOX_OPTION2="2) Extended — shtorm-7/sing-box-extended"
+            MSG_SINGBOX_OPTION3="3) Clean — mrvokintos/sing-box-extended"
+            MSG_SINGBOX_PROMPT="Enter your choice [1-3, Enter=1]:"
+            MSG_SINGBOX_ARCH="OpenWrt architecture: %s, package format: %s"
+            MSG_SINGBOX_RELEASE="Latest %s release: %s"
+            MSG_SINGBOX_ASSET_MISSING="Release %s has no package for architecture %s (%s)."
+            MSG_SINGBOX_RELEASE_ERROR="Unable to resolve the latest %s release."
             MSG_INVALID_INPUT="Error: Invalid input"
-            MSG_SINGBOX_ERROR_OPTIONS="Choose action after error:"
-            MSG_SINGBOX_TRY_ANOTHER_FILE="Try another file"
-            MSG_SINGBOX_USE_STORE="Use store"
-            MSG_SINGBOX_EXIT="Exit"
-            MSG_SINGBOX_ERROR_CHOICE="Your choice [1-3]: "
-            MSG_SINGBOX_DOWNLOAD_MENU_OPTION1="1) Download sing-box from repository list to /tmp"
-            MSG_SINGBOX_DOWNLOAD_MENU_OPTION2="2) $MSG_SINGBOX_USE_STORE"
-            MSG_SINGBOX_DOWNLOAD_MENU_OPTION3="3) Retry file search (manual upload)"
-            MSG_SINGBOX_DOWNLOAD_PROMPT="Choose action [1-3]: "
-            MSG_SINGBOX_LIST_UNAVAILABLE="Package list unavailable (branch or network). Check BRANCH and internet."
-            MSG_SINGBOX_SELECT_PKG="Available sing-box packages (branch: $BRANCH):"
-            MSG_SINGBOX_LIST_EMPTY="No suitable sing-box packages in repository."
             MSG_SINGBOX_DOWNLOADING="Downloading '%s' to /tmp..."
-            MSG_SINGBOX_DOWNLOAD_SUCCESS_FILE="File '%s' downloaded to /tmp successfully."
-            MSG_SINGBOX_DOWNLOAD_ERROR_FILE="Failed to download '%s'. Please check your internet connection."
             MSG_INVALID_INPUT="Error: Invalid input"
             MSG_REPEAT_INPUT="Repeat input"
-            MSG_INSTALL_SINGBOX_FILE="Installing selected sing-box file..."
             MSG_IPV6_DISABLE_PROMPT="Disable IPv6? [1-Yes, 2-No] (default: 1 - Disable): "
             MSG_IPV6_SKIP="IPv6 left unchanged"
             MSG_IPV6_RESTORE_CHECK="Checking if IPv6 restore is needed..."
@@ -354,13 +284,6 @@ init_language() {
     esac
 
 
-}
-
-# Ожидание / Waiting
-waiting() {
-    local interval="${1:-30}"
-    show_progress "$(printf "$MSG_WAITING" "$interval")"
-    sleep "$interval"
 }
 
 # Обновление репозиториев / Update repos
@@ -500,265 +423,119 @@ network_check() {
 }
 
 # Установка sing-box / Install sing-box
+fetch_text() {
+    if command -v curl >/dev/null 2>&1; then
+        curl -fsSL "$1"
+    else
+        wget -qO- "$1"
+    fi
+}
+
+download_file() {
+    if command -v curl >/dev/null 2>&1; then
+        curl -fL --max-time 300 -o "$2" "$1"
+    else
+        wget -O "$2" "$1"
+    fi
+}
+
+detect_openwrt_arch() {
+    local arch=""
+    if [ -r /etc/openwrt_release ]; then
+        . /etc/openwrt_release
+        arch="${DISTRIB_ARCH:-}"
+    fi
+    if [ -z "$arch" ] && [ -r /etc/apk/arch ]; then
+        arch=$(sed -n '1p' /etc/apk/arch)
+    fi
+    if [ -z "$arch" ] && command -v opkg >/dev/null 2>&1; then
+        arch=$(opkg print-architecture 2>/dev/null | awk 'END { print $2 }')
+    fi
+    case "$arch" in
+        ''|*[!A-Za-z0-9._+-]*) return 1 ;;
+    esac
+    printf '%s\n' "$arch"
+}
+
+install_release_core() {
+    local repo="$1"
+    local label="$2"
+    local package_name="$3"
+    local arch latest_html tag assets asset_path asset_url package_file
+
+    arch=$(detect_openwrt_arch) || {
+        show_error "$(printf "$MSG_SINGBOX_RELEASE_ERROR" "$label")"
+        return 1
+    }
+    show_message "$(printf "$MSG_SINGBOX_ARCH" "$arch" "$PKG_EXT")"
+
+    latest_html=$(fetch_text "https://github.com/${repo}/releases/latest") || {
+        show_error "$(printf "$MSG_SINGBOX_RELEASE_ERROR" "$label")"
+        return 1
+    }
+    tag=$(printf '%s' "$latest_html" | grep -o 'releases/expanded_assets/[^"?]*' | head -n 1 | sed 's#releases/expanded_assets/##')
+    [ -n "$tag" ] || {
+        show_error "$(printf "$MSG_SINGBOX_RELEASE_ERROR" "$label")"
+        return 1
+    }
+    show_message "$(printf "$MSG_SINGBOX_RELEASE" "$label" "$tag")"
+
+    assets=$(fetch_text "https://github.com/${repo}/releases/expanded_assets/${tag}") || return 1
+    asset_path=$(printf '%s' "$assets" | grep -o 'href="[^"]*"' | sed 's/^href="//;s/"$//' | grep "_openwrt_${arch}\.${PKG_EXT}$" | head -n 1)
+    [ -n "$asset_path" ] || {
+        show_error "$(printf "$MSG_SINGBOX_ASSET_MISSING" "$tag" "$arch" "$PKG_EXT")"
+        return 1
+    }
+
+    asset_url="https://github.com${asset_path}"
+    package_file="/tmp/${package_name}.${PKG_EXT}"
+    show_progress "$(printf "$MSG_SINGBOX_DOWNLOADING" "${asset_path##*/}")"
+    download_file "$asset_url" "$package_file" || return 1
+
+    if [ "$package_name" = "sing-box" ]; then
+        pkg_is_installed sing-box-extended && pkg_remove sing-box-extended || true
+    else
+        pkg_is_installed sing-box && pkg_remove sing-box || true
+    fi
+
+    if pkg_install_file "$package_file"; then
+        rm -f "$package_file"
+        mkdir -p /etc/singbox-ui
+        printf '%s\n' "$repo" > /etc/singbox-ui/core-source
+        show_success "$MSG_INSTALL_SINGBOX_SUCCESS"
+        return 0
+    fi
+    rm -f "$package_file"
+    return 1
+}
+
 install_singbox() {
     show_progress "$MSG_INSTALL_SINGBOX"
-    
-    # Спросить только при первом использовании
     if [ -z "$SINGBOX_INSTALL_MODE" ]; then
         while true; do
             show_message ""
             show_message "$MSG_SINGBOX_CHOOSE"
             show_message "$MSG_SINGBOX_OPTION1"
             show_message "$MSG_SINGBOX_OPTION2"
+            show_message "$MSG_SINGBOX_OPTION3"
             show_message ""
             read_input "$MSG_SINGBOX_PROMPT" SINGBOX_INSTALL_MODE
+            SINGBOX_INSTALL_MODE="${SINGBOX_INSTALL_MODE:-1}"
             case "$SINGBOX_INSTALL_MODE" in
-                1|2)
-                    break
-                    ;;
-                *)
-                    show_error "$MSG_INVALID_INPUT. $MSG_REPEAT_INPUT"
-                    ;;
+                1|2|3) break ;;
+                *) show_error "$MSG_INVALID_INPUT. $MSG_REPEAT_INPUT" ;;
             esac
         done
     fi
 
-    if [ "$SINGBOX_INSTALL_MODE" = "1" ]; then
-        # Установка из магазина
-        show_progress "$MSG_INSTALL_SINGBOX"
-        
-        if pkg_install sing-box; then
-            show_success "$MSG_INSTALL_SINGBOX_SUCCESS"
-        else
-            show_error "$MSG_INSTALL_SINGBOX_ERROR"
-            exit 1
-        fi
-    elif [ "$SINGBOX_INSTALL_MODE" = "2" ]; then
-        # Ручная установка из /tmp
-        manual_singbox_install
-    fi
-}
-
-# Ручная установка sing-box / Manual sing-box installation
-manual_singbox_install() {
-    # Параметры дефолтной версии для авто-скачивания (ipk/apk по платформе)
-    local singbox_pkg_base="https://raw.githubusercontent.com/mrvokintos/luci-app-singbox-ui/${BRANCH}/other/pkg/${PKG_EXT}"
-
-    while true; do
-        show_message ""
-        show_message "$MSG_SINGBOX_MANUAL_INSTRUCTIONS"
-        show_message ""
-        show_message "$MSG_SINGBOX_MANUAL_STEP_1"
-        show_message "$MSG_SINGBOX_MANUAL_STEP_2"
-        show_message "$MSG_SINGBOX_MANUAL_STEP_3"
-        show_message ""
-        
-        # Найти все IPK файлы в /tmp
-        local ipk_files=""
-        local ipk_count=0
-        
-        if [ -d "/tmp" ]; then
-            ipk_files=$(find /tmp -maxdepth 1 \( -name "sing-box*.ipk" -o -name "sing-box*.apk" \) -type f 2>/dev/null | sort)
-            ipk_count=$(echo "$ipk_files" | grep -c . || true)
-        fi
-        
-        # Если файлы не найдены
-        if [ $ipk_count -eq 0 ] || [ -z "$ipk_files" ]; then
-            show_error "$MSG_SINGBOX_FILE_NOT_FOUND"
-            show_message "$MSG_SINGBOX_UPLOAD_INSTRUCTIONS"
-            show_message ""
-            show_message "$MSG_SINGBOX_DOWNLOAD_MENU_OPTION1"
-            show_message "$MSG_SINGBOX_DOWNLOAD_MENU_OPTION2"
-            show_message "$MSG_SINGBOX_DOWNLOAD_MENU_OPTION3"
-            while true; do
-                read_input "$MSG_SINGBOX_DOWNLOAD_PROMPT" RETRY_CHOICE
-                case $RETRY_CHOICE in
-                    1)
-                        # Список sing-box пакетов из репо (ветка $BRANCH) / List from repo branch
-                        local api_url="https://api.github.com/repos/mrvokintos/luci-app-singbox-ui/contents/other/pkg/${PKG_EXT}?ref=${BRANCH}"
-                        local list_json=""
-                        list_json=$(curl -sL "$api_url" 2>/dev/null) || true
-                        local pkg_names=""
-                        if [ -n "$list_json" ]; then
-                            pkg_names=$(echo "$list_json" | grep -o '"name"[[:space:]]*:[[:space:]]*"[^"]*\.'"${PKG_EXT}"'"' | sed -n 's/.*:[[:space:]]*"\([^"]*\)".*/\1/p')
-                            # только sing-box*.ext / only sing-box*.ext
-                            pkg_names=$(echo "$pkg_names" | grep -E '^sing-box.*\.'"${PKG_EXT}"'$' || true)
-                        fi
-                        if [ -z "$pkg_names" ]; then
-                            show_error "$MSG_SINGBOX_LIST_UNAVAILABLE"
-                            break
-                        fi
-                        show_message "$MSG_SINGBOX_SELECT_PKG"
-                        local idx=1
-                        local num_to_name=""
-                        local total_pkg=0
-                        while IFS= read -r name; do
-                            [ -z "$name" ] && continue
-                            show_message "  [$idx] $name"
-                            eval SINGBOX_PKG_${idx}="\$name"
-                            idx=$((idx + 1))
-                            total_pkg=$((total_pkg + 1))
-                        done <<EOF
-$pkg_names
-EOF
-                        if [ "$total_pkg" -eq 0 ]; then
-                            show_error "$MSG_SINGBOX_LIST_EMPTY"
-                            break
-                        fi
-                        local choice_pkg=""
-                        while true; do
-                            read_input "$MSG_SINGBOX_SELECT_FILE" choice_pkg
-                            if [ "$choice_pkg" -ge 1 ] 2>/dev/null && [ "$choice_pkg" -le "$total_pkg" ] 2>/dev/null; then
-                                break
-                            fi
-                            show_error "$MSG_INVALID_INPUT. $MSG_REPEAT_INPUT"
-                        done
-                        eval "local selected_pkg_name=\"\$SINGBOX_PKG_${choice_pkg}\""
-                        local download_url="${singbox_pkg_base}/${selected_pkg_name}"
-                        local dst_file="/tmp/${selected_pkg_name}"
-                        show_progress "$(printf "$MSG_SINGBOX_DOWNLOADING" "$selected_pkg_name")"
-                        if wget -O "$dst_file" "$download_url"; then
-                            show_success "$(printf "$MSG_SINGBOX_DOWNLOAD_SUCCESS_FILE" "$selected_pkg_name")"
-                            show_progress "$MSG_INSTALL_SINGBOX_FILE"
-                            if pkg_install_file "$dst_file"; then
-                                show_success "$MSG_INSTALL_SINGBOX_SUCCESS"
-                                rm -f "$dst_file"
-                                return 0
-                            else
-                                show_error "$MSG_INSTALL_SINGBOX_ERROR"
-                                [ -f "$dst_file" ] && rm -f "$dst_file"
-                                show_message ""
-                                show_message "$MSG_SINGBOX_ERROR_OPTIONS"
-                                show_message "1) $MSG_SINGBOX_TRY_ANOTHER_FILE"
-                                show_message "2) $MSG_SINGBOX_USE_STORE"
-                                show_message "3) $MSG_SINGBOX_EXIT"
-                                while true; do
-                                    read_input "$MSG_SINGBOX_ERROR_CHOICE" INST_ERR_CHOICE
-                                    case $INST_ERR_CHOICE in
-                                        1) RETRY_CHOICE="3"; break ;;
-                                        2) SINGBOX_INSTALL_MODE="1"; install_singbox; return ;;
-                                        3) exit 1 ;;
-                                        *) show_error "$MSG_INVALID_INPUT. $MSG_REPEAT_INPUT" ;;
-                                    esac
-                                done
-                            fi
-                        else
-                            show_error "$(printf "$MSG_SINGBOX_DOWNLOAD_ERROR_FILE" "$selected_pkg_name")"
-                            [ -f "$dst_file" ] && rm -f "$dst_file"
-                        fi
-                        break
-                        ;;
-                    2)
-                        SINGBOX_INSTALL_MODE="1"
-                        install_singbox
-                        return
-                        ;;
-                    3)
-                        # просто заново показать инструкции по ручной загрузке и повторить поиск
-                        break
-                        ;;
-                    *)
-                        show_error "$MSG_INVALID_INPUT. $MSG_REPEAT_INPUT"
-                        ;;
-                esac
-            done
-            [ "$RETRY_CHOICE" = "1" ] || [ "$RETRY_CHOICE" = "3" ] && continue
-        fi
-
-        local selected_file=""
-        
-        # Если найден только один файл
-        if [ $ipk_count -eq 1 ]; then
-            selected_file="$ipk_files"
-            show_message "$MSG_SINGBOX_FILE_FOUND ${selected_file##*/}"
-        else
-            # Если найдено несколько файлов - показать выбор
-            show_message "$MSG_SINGBOX_MULTIPLE_FILES_FOUND"
-            show_message ""
-            
-            local i=1
-            while IFS= read -r file; do
-                if [ -n "$file" ]; then
-                    show_message "$i) ${file##*/}"
-                    i=$((i + 1))
-                fi
-            done <<EOF
-$ipk_files
-EOF
-            
-            show_message ""
-            while true; do
-                read_input "$MSG_SINGBOX_SELECT_FILE" SINGBOX_FILE_CHOICE
-                # Проверка выбора
-                if [ "$SINGBOX_FILE_CHOICE" -ge 1 ] && [ "$SINGBOX_FILE_CHOICE" -le $ipk_count ] 2>/dev/null; then
-                    break
-                else
-                    show_error "$MSG_INVALID_INPUT. $MSG_REPEAT_INPUT"
-                fi
-            done
-            
-            selected_file=$(echo "$ipk_files" | sed -n "${SINGBOX_FILE_CHOICE}p")
-        fi
-        
-        # Подтверждение установки
-        while true; do
-            read_input "$MSG_SINGBOX_CONFIRM_PROMPT" SINGBOX_MANUAL_CONFIRM
-            case "$SINGBOX_MANUAL_CONFIRM" in
-                1|2)
-                    break
-                    ;;
-                *)
-                    show_error "$MSG_INVALID_INPUT. $MSG_REPEAT_INPUT"
-                    ;;
-            esac
-        done
-        
-        if [ "$SINGBOX_MANUAL_CONFIRM" = "1" ]; then
-            show_progress "$MSG_INSTALL_SINGBOX_FILE"
-            
-            if pkg_install_file "$selected_file"; then
-                show_success "$MSG_INSTALL_SINGBOX_SUCCESS"
-                rm -f "$selected_file"
-                break
-            else
-                show_error "$MSG_INSTALL_SINGBOX_ERROR"
-                
-                show_message ""
-                show_message "$MSG_SINGBOX_ERROR_OPTIONS"
-                show_message "1) $MSG_SINGBOX_TRY_ANOTHER_FILE"
-                show_message "2) $MSG_SINGBOX_USE_STORE"
-                show_message "3) $MSG_SINGBOX_EXIT"
-                while true; do
-                    read_input "$MSG_SINGBOX_ERROR_CHOICE" ERROR_CHOICE
-                    case $ERROR_CHOICE in
-                        1)
-                            rm -f "$selected_file"
-                            break
-                            ;;
-                        2)
-                            SINGBOX_INSTALL_MODE="1"
-                            install_singbox
-                            return
-                            ;;
-                        3)
-                            exit 1
-                            ;;
-                    *)
-                        show_error "$MSG_INVALID_INPUT. $MSG_REPEAT_INPUT"
-                        ;;
-                    esac
-                done
-                [ "$ERROR_CHOICE" = "1" ] && continue
-            fi
-        elif [ "$SINGBOX_MANUAL_CONFIRM" = "2" ]; then
-            SINGBOX_INSTALL_MODE="1"
-            install_singbox
-            return
-        else
-            show_error "$MSG_INVALID_INPUT"
-            continue
-        fi
-    done
+    case "$SINGBOX_INSTALL_MODE" in
+        1) install_release_core "SagerNet/sing-box" "Original" "sing-box" ;;
+        2) install_release_core "shtorm-7/sing-box-extended" "Extended" "sing-box-extended" ;;
+        3) install_release_core "mrvokintos/sing-box-extended" "Clean" "sing-box-extended" ;;
+    esac || {
+        show_error "$MSG_INSTALL_SINGBOX_ERROR"
+        exit 1
+    }
 }
 
 # Удаление sing-box / Uninstall sing-box
@@ -766,7 +543,13 @@ uninstall_singbox() {
     show_progress "$MSG_UNINSTALL_SINGBOX"
     service sing-box stop 2>/dev/null
     service sing-box disable 2>/dev/null
-    if pkg_remove sing-box; then
+    local removed=0
+    if pkg_is_installed sing-box-extended; then
+        pkg_remove sing-box-extended && removed=1
+    elif pkg_is_installed sing-box; then
+        pkg_remove sing-box && removed=1
+    fi
+    if [ "$removed" -eq 1 ]; then
         show_success "$MSG_UNINSTALL_SINGBOX_SUCCESS"
     else
         show_error "$MSG_UNINSTALL_SINGBOX_ERROR"
@@ -793,7 +576,8 @@ disable_singbox_service() {
 # Очистка конфигурации / Reset configuration
 clean_singbox_config() {
     show_progress "$MSG_CONFIG_RESET"
-    echo '{}' > /etc/sing-box/config.json
+    mkdir -p /etc/sing-box
+    [ -s /etc/sing-box/config.json ] || printf '{}\n' > /etc/sing-box/config.json
     show_success "$MSG_CONFIG_RESET"
 }
 
@@ -864,7 +648,7 @@ enable_singbox() {
 
 # Проверка установки / Check installation
 check_installed() {
-    pkg_is_installed "sing-box"
+    pkg_is_installed sing-box || pkg_is_installed sing-box-extended
 }
 
 # Удаление конфигураций / Remove configurations

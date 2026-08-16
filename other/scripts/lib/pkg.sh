@@ -24,9 +24,9 @@ detect_pkg_manager() {
 pkg_is_installed() {
     local pkg_name="$1"
     if [ "$PKG_IS_APK" -eq 1 ]; then
-        apk list --installed 2>/dev/null | grep -q "$pkg_name"
+        apk info -e "$pkg_name" >/dev/null 2>&1
     else
-        opkg list-installed 2>/dev/null | grep -q "$pkg_name"
+        opkg list-installed 2>/dev/null | awk -v package="$pkg_name" '$1 == package { found=1 } END { exit !found }'
     fi
 }
 
