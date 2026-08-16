@@ -25,7 +25,7 @@ ensure_ui_library() {
     fi
 
     mkdir -p "$SCRIPT_DIR/lib" 2>/dev/null
-    ui_url="https://raw.githubusercontent.com/ang3el7z/luci-app-singbox-ui/$BRANCH/other/scripts/lib/ui.sh"
+    ui_url="https://raw.githubusercontent.com/mrvokintos/luci-app-singbox-ui/$BRANCH/other/scripts/lib/ui.sh"
     if command -v wget >/dev/null 2>&1; then
         wget -O "$UI_PATH" "$ui_url" || return 1
     elif command -v curl >/dev/null 2>&1; then
@@ -46,7 +46,7 @@ ensure_pkg_library() {
     fi
 
     mkdir -p "$SCRIPT_DIR/lib" 2>/dev/null
-    pkg_url="https://raw.githubusercontent.com/ang3el7z/luci-app-singbox-ui/$BRANCH/other/scripts/lib/pkg.sh"
+    pkg_url="https://raw.githubusercontent.com/mrvokintos/luci-app-singbox-ui/$BRANCH/other/scripts/lib/pkg.sh"
     if command -v wget >/dev/null 2>&1; then
         wget -O "$PKG_PATH" "$pkg_url" || return 1
     elif command -v curl >/dev/null 2>&1; then
@@ -295,8 +295,8 @@ network_check() {
 # Выбор версии для установки / Version selection
 choose_install_version() {
     # Ссылки на файлы для каждой версии (ipk для opkg, apk для OpenWrt 25) / URLs per version
-    local url_latest="https://github.com/ang3el7z/luci-app-singbox-ui/releases/latest/download/luci-app-singbox-ui.${PKG_EXT}"
-    local url_lite="https://github.com/ang3el7z/luci-app-singbox-ui/releases/download/v1.2.1/luci-app-singbox-ui.${PKG_EXT}"
+    local url_latest="https://github.com/mrvokintos/luci-app-singbox-ui/releases/latest/download/luci-app-singbox-ui.${PKG_EXT}"
+    local url_lite="https://github.com/mrvokintos/luci-app-singbox-ui/releases/download/v1.2.1/luci-app-singbox-ui.${PKG_EXT}"
 
     while true; do
         show_message "$MSG_CHOOSE_VERSION"
@@ -317,7 +317,7 @@ choose_install_version() {
             ;;
         3)
             # Получаем ссылку на последнюю pre-release сборку для ветки (предпочитаем .apk/.ipk по платформе)
-            DOWNLOAD_URL=$(curl -s https://api.github.com/repos/ang3el7z/luci-app-singbox-ui/releases | \
+            DOWNLOAD_URL=$(curl -s https://api.github.com/repos/mrvokintos/luci-app-singbox-ui/releases | \
             awk -v branch="$BRANCH" -v ext="$PKG_EXT" '
                 /"prerelease": true/ { prerelease=1 }
                 /"target_commitish":/ {
@@ -336,7 +336,7 @@ choose_install_version() {
 
             if [ -z "$DOWNLOAD_URL" ]; then
                 # fallback: ищем любой pre-release по расширению / any prerelease by extension
-                DOWNLOAD_URL=$(curl -s https://api.github.com/repos/ang3el7z/luci-app-singbox-ui/releases | \
+                DOWNLOAD_URL=$(curl -s https://api.github.com/repos/mrvokintos/luci-app-singbox-ui/releases | \
                 grep -A 20 '"prerelease": true' | \
                 grep "browser_download_url.*luci-app-singbox-ui\.${PKG_EXT}" | \
                 head -n 1 | \
@@ -351,7 +351,7 @@ choose_install_version() {
             break
             ;;
         4)
-            local runner_base_url="https://raw.githubusercontent.com/ang3el7z/luci-app-singbox-ui/${BRANCH}/artifacts/${PKG_EXT}"
+            local runner_base_url="https://raw.githubusercontent.com/mrvokintos/luci-app-singbox-ui/${BRANCH}/artifacts/${PKG_EXT}"
             local index_url="$runner_base_url/index.txt"
 
             show_progress "$MSG_SELECT_RUNNER"

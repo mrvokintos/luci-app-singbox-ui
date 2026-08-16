@@ -23,7 +23,7 @@
 
 ## Установка
 ```bash
-wget -O /root/install.sh https://raw.githubusercontent.com/ang3el7z/luci-app-singbox-ui/main/install.sh && chmod 0755 /root/install.sh && BRANCH="main" sh /root/install.sh
+wget -O /root/install.sh https://raw.githubusercontent.com/mrvokintos/luci-app-singbox-ui/main/install.sh && chmod 0755 /root/install.sh && BRANCH="main" sh /root/install.sh
 ```
 
 После запуска скрипта:
@@ -44,8 +44,8 @@ ssh root@192.168.1.1
 Если страница LuCI не появилась после установки, выполните жесткое обновление страницы в браузере.
 
 ## Шаблоны конфигурации
-- [openwrt-template](https://raw.githubusercontent.com/ang3el7z/luci-app-singbox-ui/main/other/file/openwrt-template.json)
-- [openwrt-template-tproxy](https://raw.githubusercontent.com/ang3el7z/luci-app-singbox-ui/main/other/file/openwrt-template-tproxy.json)
+- [openwrt-template](https://raw.githubusercontent.com/mrvokintos/luci-app-singbox-ui/main/other/file/openwrt-template.json)
+- [openwrt-template-tproxy](https://raw.githubusercontent.com/mrvokintos/luci-app-singbox-ui/main/other/file/openwrt-template-tproxy.json)
 - [Sing-Box Configuration](https://sing-box.sagernet.org/configuration/)
 
 ## Вклад
@@ -55,4 +55,4 @@ Issues и pull request приветствуются.
 GNU General Public License v2.0 (GPL-2.0-only). См. [LICENSE](./LICENSE).
 
 ## Stargazers over time
-[![Stargazers over time](https://starchart.cc/ang3el7z/luci-app-singbox-ui.svg?variant=adaptive)](https://starchart.cc/ang3el7z/luci-app-singbox-ui)
+[![Stargazers over time](https://starchart.cc/mrvokintos/luci-app-singbox-ui.svg?variant=adaptive)](https://starchart.cc/mrvokintos/luci-app-singbox-ui)

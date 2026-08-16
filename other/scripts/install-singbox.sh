@@ -27,7 +27,7 @@ ensure_ui_library() {
     fi
 
     mkdir -p "$SCRIPT_DIR/lib" 2>/dev/null
-    ui_url="https://raw.githubusercontent.com/ang3el7z/luci-app-singbox-ui/$BRANCH/other/scripts/lib/ui.sh"
+    ui_url="https://raw.githubusercontent.com/mrvokintos/luci-app-singbox-ui/$BRANCH/other/scripts/lib/ui.sh"
     if command -v wget >/dev/null 2>&1; then
         wget -O "$UI_PATH" "$ui_url" || return 1
     elif command -v curl >/dev/null 2>&1; then
@@ -48,7 +48,7 @@ ensure_pkg_library() {
     fi
 
     mkdir -p "$SCRIPT_DIR/lib" 2>/dev/null
-    pkg_url="https://raw.githubusercontent.com/ang3el7z/luci-app-singbox-ui/$BRANCH/other/scripts/lib/pkg.sh"
+    pkg_url="https://raw.githubusercontent.com/mrvokintos/luci-app-singbox-ui/$BRANCH/other/scripts/lib/pkg.sh"
     if command -v wget >/dev/null 2>&1; then
         wget -O "$PKG_PATH" "$pkg_url" || return 1
     elif command -v curl >/dev/null 2>&1; then
@@ -65,7 +65,7 @@ ensure_pkg_library() {
 
 ensure_mode_switch() {
     mkdir -p "$SCRIPT_DIR/lib" 2>/dev/null
-    local ms_url="https://raw.githubusercontent.com/ang3el7z/luci-app-singbox-ui/$BRANCH/luci-app-singbox-ui/root/usr/bin/singbox-ui/singbox-ui-mode-switch"
+    local ms_url="https://raw.githubusercontent.com/mrvokintos/luci-app-singbox-ui/$BRANCH/luci-app-singbox-ui/root/usr/bin/singbox-ui/singbox-ui-mode-switch"
     if command -v wget >/dev/null 2>&1; then
         wget -O "$MS_PATH" "$ms_url" || return 1
     elif command -v curl >/dev/null 2>&1; then
@@ -542,7 +542,7 @@ install_singbox() {
 # Ручная установка sing-box / Manual sing-box installation
 manual_singbox_install() {
     # Параметры дефолтной версии для авто-скачивания (ipk/apk по платформе)
-    local singbox_pkg_base="https://raw.githubusercontent.com/ang3el7z/luci-app-singbox-ui/${BRANCH}/other/pkg/${PKG_EXT}"
+    local singbox_pkg_base="https://raw.githubusercontent.com/mrvokintos/luci-app-singbox-ui/${BRANCH}/other/pkg/${PKG_EXT}"
 
     while true; do
         show_message ""
@@ -575,7 +575,7 @@ manual_singbox_install() {
                 case $RETRY_CHOICE in
                     1)
                         # Список sing-box пакетов из репо (ветка $BRANCH) / List from repo branch
-                        local api_url="https://api.github.com/repos/ang3el7z/luci-app-singbox-ui/contents/other/pkg/${PKG_EXT}?ref=${BRANCH}"
+                        local api_url="https://api.github.com/repos/mrvokintos/luci-app-singbox-ui/contents/other/pkg/${PKG_EXT}?ref=${BRANCH}"
                         local list_json=""
                         list_json=$(curl -sL "$api_url" 2>/dev/null) || true
                         local pkg_names=""
