@@ -100,7 +100,7 @@ init_language() {
             MSG_DEPS_ERROR="Ошибка установки зависимостей"
             MSG_INSTALL_UI="Начало установки singbox-ui..."
             MSG_CHOOSE_VERSION="Выберите версию singbox-ui для установки:"
-            MSG_OPTION_1="1) Latest (~150 Кб)"
+            MSG_OPTION_1="1) Latest (~150 Кб, по умолчанию)"
             MSG_OPTION_2="2) Pre-release (бета, возможны баги)"
             MSG_OPTION_3="3) Runner сборка из Pull Request (тестовая)"
             MSG_INVALID_CHOICE="Неверный выбор"
@@ -150,7 +150,7 @@ init_language() {
             MSG_DEPS_ERROR="Error installing dependencies"
             MSG_INSTALL_UI="Starting singbox-ui installation..."
             MSG_CHOOSE_VERSION="Select singbox-ui version to install:"
-            MSG_OPTION_1="1) Latest (~150 KB)"
+            MSG_OPTION_1="1) Latest (~150 KB, default)"
             MSG_OPTION_2="2) Pre-release (beta, may have bugs)"
             MSG_OPTION_3="3) Runner build from Pull Request (testing)"
             MSG_INSTALL_COMPLETE="Installation complete"
@@ -286,7 +286,7 @@ choose_install_version() {
         show_message "$MSG_OPTION_3"
         read_input "$MSG_YOUR_CHOICE" VERSION_CHOICE
 
-        case "$VERSION_CHOICE" in
+        case "${VERSION_CHOICE:-1}" in
         1)
             DOWNLOAD_URL="$url_latest"
             break
