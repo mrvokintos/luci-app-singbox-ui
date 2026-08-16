@@ -101,9 +101,8 @@ init_language() {
             MSG_INSTALL_UI="Начало установки singbox-ui..."
             MSG_CHOOSE_VERSION="Выберите версию singbox-ui для установки:"
             MSG_OPTION_1="1) Latest (~150 Кб)"
-            MSG_OPTION_2="2) Lite версия (~6 Кб) (Не поддерживается, старая версия, без новых фич)"
-            MSG_OPTION_3="3) Pre-release (бета, возможны баги)"
-            MSG_OPTION_4="4) Runner сборка из Pull Request (тестовая)"
+            MSG_OPTION_2="2) Pre-release (бета, возможны баги)"
+            MSG_OPTION_3="3) Runner сборка из Pull Request (тестовая)"
             MSG_INVALID_CHOICE="Неверный выбор"
             MSG_INSTALL_COMPLETE="Установка завершена"
             MSG_CLEANUP_LIB="Очистка библиотек..."
@@ -152,9 +151,8 @@ init_language() {
             MSG_INSTALL_UI="Starting singbox-ui installation..."
             MSG_CHOOSE_VERSION="Select singbox-ui version to install:"
             MSG_OPTION_1="1) Latest (~150 KB)"
-            MSG_OPTION_2="2) Lite version (~6 KB) (Not supported, old version, without new features)"
-            MSG_OPTION_3="3) Pre-release (beta, may have bugs)"
-            MSG_OPTION_4="4) Runner build from Pull Request (testing)"
+            MSG_OPTION_2="2) Pre-release (beta, may have bugs)"
+            MSG_OPTION_3="3) Runner build from Pull Request (testing)"
             MSG_INSTALL_COMPLETE="Installation complete"
             MSG_CLEANUP="Cleaning up files..."
             MSG_CLEANUP_DONE="Files removed!"
@@ -280,14 +278,12 @@ network_check() {
 choose_install_version() {
     # Ссылки на файлы для каждой версии (ipk для opkg, apk для OpenWrt 25) / URLs per version
     local url_latest="https://github.com/mrvokintos/luci-app-singbox-ui/releases/latest/download/luci-app-singbox-ui.${PKG_EXT}"
-    local url_lite="https://github.com/mrvokintos/luci-app-singbox-ui/releases/download/v1.2.1/luci-app-singbox-ui.${PKG_EXT}"
 
     while true; do
         show_message "$MSG_CHOOSE_VERSION"
         show_message "$MSG_OPTION_1"
         show_message "$MSG_OPTION_2"
         show_message "$MSG_OPTION_3"
-        show_message "$MSG_OPTION_4"
         read_input "$MSG_YOUR_CHOICE" VERSION_CHOICE
 
         case "$VERSION_CHOICE" in
@@ -296,10 +292,6 @@ choose_install_version() {
             break
             ;;
         2)
-            DOWNLOAD_URL="$url_lite"
-            break
-            ;;
-        3)
             # Получаем ссылку на последнюю pre-release сборку для ветки (предпочитаем .apk/.ipk по платформе)
             DOWNLOAD_URL=$(curl -s https://api.github.com/repos/mrvokintos/luci-app-singbox-ui/releases | \
             awk -v branch="$BRANCH" -v ext="$PKG_EXT" '
@@ -334,7 +326,7 @@ choose_install_version() {
             fi
             break
             ;;
-        4)
+        3)
             local runner_base_url="https://raw.githubusercontent.com/mrvokintos/luci-app-singbox-ui/${BRANCH}/artifacts/${PKG_EXT}"
             local index_url="$runner_base_url/index.txt"
 
