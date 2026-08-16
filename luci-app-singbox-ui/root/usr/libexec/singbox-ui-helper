@@ -45,7 +45,7 @@ case "\${1:-}" in
 	ensure-dir)
 		mkdir -p "$config_dir"
 		;;
-	activate)
+	activate|apply)
 		name="\${2:-}"
 		valid_name "$name"
 		cp "$config_dir/$name" "$config_dir/config.json"
@@ -68,7 +68,7 @@ case "\${1:-}" in
 		rm -f "$prefix"*
 		;;
 	*)
-		echo "Unsupported operation" >&2
+		echo "Unsupported operation: \${1:-<empty>}" >&2
 		exit 2
 		;;
 esac
