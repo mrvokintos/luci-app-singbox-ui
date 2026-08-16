@@ -121,8 +121,6 @@ init_language() {
         MSG_OPERATION_CHOICE="Ваш выбор: "
         MSG_BACKUP_CONFIGS="Сохранение резервных конфигов..."
         MSG_RESTORE_CONFIGS="Восстановление резервных конфигов..."
-        MSG_INSTALL_SFTP_SERVER="Установить openssh-sftp-server? y/n (n - по умолчанию): "
-        MSG_SFTP_ALREADY_INSTALLED="openssh-sftp-server уже установлен"
         MSG_INVALID_INPUT="Некорректный ввод"
         MSG_REPEAT_INPUT="Повторите ввод"
         ;;
@@ -154,8 +152,6 @@ init_language() {
         MSG_OPERATION_CHOICE="Your choice: "
         MSG_BACKUP_CONFIGS="Backing up configs..."
         MSG_RESTORE_CONFIGS="Restoring backup configs..."
-        MSG_INSTALL_SFTP_SERVER="Install openssh-sftp-server? y/n (n - by default): "
-        MSG_SFTP_ALREADY_INSTALLED="openssh-sftp-server already installed"
         MSG_INVALID_INPUT="Invalid input"
         MSG_REPEAT_INPUT="Repeat input"
         ;;
@@ -172,45 +168,12 @@ waiting() {
 # Обновление репозиториев и установка зависимостей / Update repos and install dependencies
 update_pkgs() {
     show_progress "$MSG_UPDATE_PKGS"
-
-    if pkg_is_installed "openssh-sftp-server"; then
-        echo "$MSG_SFTP_ALREADY_INSTALLED"
-        SFTP_SERVER="n"
+    if pkg_list_update; then
+        show_success "$MSG_DEPS_SUCCESS"
     else
-        while true; do
-            read_input "$MSG_INSTALL_SFTP_SERVER" SFTP_SERVER
-            if [ -z "$SFTP_SERVER" ]; then
-                SFTP_SERVER="n"
-            fi
-            case "$SFTP_SERVER" in
-                [Yy]|[Nn])
-                    break
-                    ;;
-                *)
-                    show_error "$MSG_INVALID_INPUT. $MSG_REPEAT_INPUT"
-                    ;;
-            esac
-        done
+        show_error "$MSG_DEPS_ERROR"
+        exit 1
     fi
-
-    case $SFTP_SERVER in
-    [Yy])
-        if pkg_list_update && pkg_install openssh-sftp-server; then
-            show_success "$MSG_DEPS_SUCCESS"
-        else
-            show_error "$MSG_DEPS_ERROR"
-            exit 1
-        fi
-        ;;
-    [Nn]|"")
-        if pkg_list_update; then
-            show_success "$MSG_DEPS_SUCCESS"
-        else
-            show_error "$MSG_DEPS_ERROR"
-            exit 1
-        fi
-        ;;
-    esac
 }
 
 

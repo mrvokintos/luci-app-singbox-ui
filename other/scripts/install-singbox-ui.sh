@@ -118,18 +118,10 @@ init_language() {
             MSG_WAITING="Ожидание %d сек"
             MSG_YOUR_CHOICE="Ваш выбор: "
             MSG_COMPLETE="Выполнено! ($script_name)"
-            MSG_CONFIG_MENU="Ввод конфигурации:"
-            MSG_CONFIG_MENU_1="1) Ввести URL конфигурации"
-            MSG_CONFIG_MENU_2="2) Пропустить"
-            MSG_CONFIG_MENU_CHOICE=" Ваш выбор: "
-            MSG_CONFIG_PROMPT="Введите URL конфигурации (Enter для ручного ввода): "
-            MSG_CONFIG_LOADING="Загрузка конфигурации с %s (Попытка %s из %s)"
-            MSG_CONFIG_SUCCESS="Конфигурация успешно загружена"
-            MSG_CONFIG_ERROR="Ошибка загрузки: %s"
-            MSG_FORMAT_ERROR="Ошибка формата конфигурации"
-            MSG_RETRY="Попробую снова..."
-            MSG_MANUAL_CONFIG="Ручная настройка конфигурации"
-            MSG_EDIT_COMPLETE="Завершили редактирование config.json? [y/N]: "
+            MSG_CONFIG_MENU="Настройка config.json:"
+            MSG_CONFIG_MENU_1="1) Пропустить (по умолчанию)"
+            MSG_CONFIG_MENU_2="2) Ввести config.json вручную"
+            MSG_CONFIG_MENU_CHOICE="Ваш выбор: "
             MSG_EDIT_SUCCESS="Успешно"
             MSG_INVALID_INPUT="Некорректный ввод"
             MSG_REPEAT_INPUT="Повторите ввод"
@@ -177,18 +169,10 @@ init_language() {
             MSG_WAITING="Waiting %d sec"
             MSG_YOUR_CHOICE="Your choice: "
             MSG_COMPLETE="Completed! ($script_name)"
-            MSG_CONFIG_MENU="Configuration input:"
-            MSG_CONFIG_MENU_1="1) Enter configuration URL"
-            MSG_CONFIG_MENU_2="2) Skip"
-            MSG_CONFIG_MENU_CHOICE=" Your choice: "
-            MSG_CONFIG_PROMPT="Enter configuration URL (Enter for manual input): "
-            MSG_CONFIG_LOADING="Loading configuration from %s (Attempt %s of %s)"
-            MSG_CONFIG_SUCCESS="Configuration loaded successfully"
-            MSG_CONFIG_ERROR="Loading error: %s"
-            MSG_FORMAT_ERROR="Configuration format error"
-            MSG_RETRY="Retrying..."
-            MSG_MANUAL_CONFIG="Manual configuration"
-            MSG_EDIT_COMPLETE="Finished editing config.json? [y/N]: "
+            MSG_CONFIG_MENU="Configure config.json:"
+            MSG_CONFIG_MENU_1="1) Skip (default)"
+            MSG_CONFIG_MENU_2="2) Edit config.json manually"
+            MSG_CONFIG_MENU_CHOICE="Your choice: "
             MSG_EDIT_SUCCESS="Success"
             MSG_INVALID_INPUT="Invalid input"
             MSG_REPEAT_INPUT="Repeat input"
@@ -419,108 +403,33 @@ install_singbox_ui() {
     show_success "$MSG_INSTALL_COMPLETE"
 }
 
-# Получение конфигурации / Configuration download
+# Ручной ввод конфигурации / Manual configuration input
 get_config() {
-    # При переустановке (операция 3) бэкап уже есть — пропускаем ввод конфигурации, восстановим в конце
-    if [ "$OPERATION" = "3" ] && [ -f "/tmp/singbox-ui-backup-config.json" ]; then
-        return 0
-    fi
-    if [ -z "$CONFIG_URL" ]; then
-        local config_choice
-        while true; do
-            show_message "$MSG_CONFIG_MENU"
-            show_message "$MSG_CONFIG_MENU_1"
-            show_message "$MSG_CONFIG_MENU_2"
-            read_input "$MSG_CONFIG_MENU_CHOICE" config_choice
-            case "${config_choice}" in
-                1)
-                    read_input "${MSG_CONFIG_PROMPT}" CONFIG_URL
-                    break
-                    ;;
-                2)
-                    CONFIG_URL=""
-                    break
-                    ;;
-                *)
-                    show_error "$MSG_INVALID_INPUT. $MSG_REPEAT_INPUT"
-                    ;;
-            esac
-        done
-    fi
+    local config_choice
+    show_message "$MSG_CONFIG_MENU"
+    show_message "$MSG_CONFIG_MENU_1"
+    show_message "$MSG_CONFIG_MENU_2"
+    read_input "$MSG_CONFIG_MENU_CHOICE" config_choice
 
-    local is_auto_config=0
-    # Проверяем, что URL не пустой / Check if URL is not empty
-    if [ -n "$CONFIG_URL" ]; then
-        local max_attempts=3
-        local attempt=1
-        local success=0
-
-        # Загрузка конфигурации / Configuration download
-        while [ $attempt -le $max_attempts ]; do
-            show_progress "$(printf "$MSG_CONFIG_LOADING" "$CONFIG_URL" "$attempt" "$max_attempts")"
-            
-            # Проверка JSON / JSON validation
-            if RAW_JSON=$(curl -fsS "$CONFIG_URL" 2>/dev/null) && [ -n "$RAW_JSON" ]; then
-                if FORMATTED_JSON=$(echo "$RAW_JSON" | jq -e '.' 2>/dev/null); then
-                    echo "$FORMATTED_JSON" > /etc/sing-box/config.json
-                    show_success "$MSG_CONFIG_SUCCESS"
-                    is_auto_config=1
-                    success=1
-                    break
-                else
-                    show_error "$MSG_FORMAT_ERROR"
-                fi
-            else
-                show_error "$(printf "$MSG_CONFIG_ERROR" "${RAW_JSON:-"Unknown error"}")"
-            fi
-
-            if [ $attempt -lt $max_attempts ]; then
-                show_progress "$MSG_RETRY"
-                network_check
-            fi
-        
-            attempt=$((attempt + 1))
-        done
-
-        if [ $success -eq 0 ]; then
-            show_error "$MSG_MANUAL_CONFIG"
+    case "${config_choice:-1}" in
+        1)
+            return 0
+            ;;
+        2)
+            mkdir -p /etc/sing-box
+            [ -f /etc/sing-box/config.json ] || printf '{}\n' > /etc/sing-box/config.json
             export TERM=xterm
             nano /etc/sing-box/config.json || {
                 show_error "Failed to open editor. Please check your terminal settings."
-                exit 1
+                return 1
             }
-        fi
-    else
-        show_error "$MSG_MANUAL_CONFIG"
-        export TERM=xterm
-        nano /etc/sing-box/config.json || {
-            show_error "Failed to open editor. Please check your terminal settings."
-            exit 1
-        }
-    fi
-
-    # Проверка ручной конфигурации / Manual configuration check
-    if [ "$is_auto_config" -ne 1 ]; then
-        while true; do
-            read_input "${MSG_EDIT_COMPLETE}" edit_choice
-            case "${edit_choice:-Y}" in
-                [Yy]* )
-                    show_success "$MSG_EDIT_SUCCESS"
-                    break
-                    ;;
-                [Nn]* )
-                    export TERM=xterm
-                    nano /etc/sing-box/config.json || {
-                        show_error "Failed to open editor. Please check your terminal settings."
-                        continue
-                    }
-                    ;;
-                * )
-                    show_error "$MSG_INVALID_INPUT"
-                    ;;
-            esac
-        done
-    fi
+            show_success "$MSG_EDIT_SUCCESS"
+            ;;
+        *)
+            show_error "$MSG_INVALID_INPUT. $MSG_REPEAT_INPUT"
+            return 1
+            ;;
+    esac
 }
 
 # Удаление существующих файлов / Remove existing files
@@ -554,7 +463,6 @@ install() {
     choose_install_version
     install_singbox_ui
     get_config
-    reload_singbox
 }
 
 # Удаление / Uninstall
