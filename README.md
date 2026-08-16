@@ -1,6 +1,6 @@
 ﻿# luci-app-singbox-ui
 
-[Русский](./README.ru.md) | [中文](./README.zh.md)
+[Русский](./README.ru.md)
 
 Web interface for managing Sing-Box on OpenWrt 23/24/25.
 
@@ -14,11 +14,12 @@ Web interface for managing Sing-Box on OpenWrt 23/24/25.
 
 ## Features
 - Start, stop, and restart Sing-Box
-- Add subscriptions via URL or manual JSON
-- Store and edit multiple configs in browser
-- Auto-update Sing-Box service
-- Check service and binary status
-- Auto-restart on low memory
+- Discover every JSON config in /etc/sing-box/
+- Apply or edit configs from a compact list
+- Generate configs from VLESS, VMess, Trojan, Shadowsocks, Hysteria(2), TUIC, SOCKS and HTTP links
+- Build generated configs from an editable routing/DNS template
+- Never overwrite configs in the background
+- Check service state and validate configs with the separately installed sing-box binary
 
 ## Installation
 ```bash

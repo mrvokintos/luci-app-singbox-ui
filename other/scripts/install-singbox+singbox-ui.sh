@@ -77,17 +77,16 @@ init_language() {
 
     if [ -z "$LANG" ]; then
         while true; do
-            show_message "Выберите язык / Select language / 选择语言 [1/2/3]:"
+            show_message "Выберите язык / Select language [1/2]:"
             show_message "1. Русский (Russian)"
             show_message "2. English (Английский)"
-            show_message "3. 中文 (Chinese)"
-            read_input " Ваш выбор / Your choice / 你的选择 [1/2/3]: " LANG
+            read_input " Ваш выбор / Your choice [1/2]: " LANG
             case "$LANG" in
-                1|2|3)
+                1|2)
                     break
                     ;;
                 *)
-                    show_error "Неверный выбор / Invalid choice / 选择无效"
+                    show_error "Неверный выбор / Invalid choice"
                     ;;
             esac
         done
@@ -126,39 +125,6 @@ init_language() {
         MSG_SFTP_ALREADY_INSTALLED="openssh-sftp-server уже установлен"
         MSG_INVALID_INPUT="Некорректный ввод"
         MSG_REPEAT_INPUT="Повторите ввод"
-        ;;
-    3)
-        MSG_INSTALL_TITLE="开始! ($script_name)"
-        MSG_NETWORK_CHECK="正在检查网络可用性..."
-        MSG_NETWORK_SUCCESS="网络可用（通过 %s，耗时 %s 秒）"
-        MSG_NETWORK_ERROR="%s 秒后网络仍不可用!"
-        MSG_SINGBOX_INSTALL="正在进入 install-singbox.sh 脚本..."
-        MSG_SINGBOX_RETURN="已返回主脚本"
-        MSG_SINGBOX_UI_INSTALL="正在进入 install-singbox-ui.sh 脚本..."
-        MSG_CLEANUP_LIB="清理库文件..."
-        MSG_CLEANUP="清理文件..."
-        MSG_CLEANUP_DONE="文件已删除!"
-        MSG_COMPLETE="完成! ($script_name)"
-        MSG_WAITING="等待 %d 秒"
-        MSG_UPDATE_PKGS="正在更新软件包并安装依赖..."
-        MSG_DEPS_SUCCESS="依赖安装成功"
-        MSG_DEPS_ERROR="依赖安装失败"
-        MSG_INSTALL_ACTION="请选择操作:"
-        MSG_INSTALL_SINGBOX_UI="1. Singbox-ui"
-        MSG_INSTALL_SINGBOX="2. Singbox"
-        MSG_INSTALL_SINGBOX_UI_AND_SINGBOX="3. Singbox 和 singbox-ui"
-        MSG_INSTALL_ACTION_CHOICE="你的选择: "
-        MSG_OPERATION="请选择安装操作:"
-        MSG_OPERATION_INSTALL="1. 安装"
-        MSG_OPERATION_DELETE="2. 删除"
-        MSG_OPERATION_REINSTALL_UPDATE="3. 重装/更新"
-        MSG_OPERATION_CHOICE="你的选择: "
-        MSG_BACKUP_CONFIGS="正在备份配置..."
-        MSG_RESTORE_CONFIGS="正在恢复备份配置..."
-        MSG_INSTALL_SFTP_SERVER="安装 openssh-sftp-server? y/n（默认 n）: "
-        MSG_SFTP_ALREADY_INSTALLED="openssh-sftp-server 已安装"
-        MSG_INVALID_INPUT="输入无效"
-        MSG_REPEAT_INPUT="请重新输入"
         ;;
     *)
         MSG_INSTALL_TITLE="Starting! ($script_name)"
@@ -309,9 +275,9 @@ network_check() {
 backup_backup_configs() {
     [ "$OPERATION" != "3" ] && return 0
     show_progress "$MSG_BACKUP_CONFIGS"
-    mkdir -p /tmp
-    for f in config.json config2.json config3.json url_config.json url_config2.json url_config3.json; do
-        [ -f "/etc/sing-box/$f" ] && cp -f "/etc/sing-box/$f" "/tmp/singbox-ui-backup-$f"
+    mkdir -p /tmp/singbox-ui-config-backup
+    for f in /etc/sing-box/*.json; do
+        [ -f "$f" ] && cp -f "$f" /tmp/singbox-ui-config-backup/
     done
 }
 
@@ -320,12 +286,10 @@ restore_backup_configs() {
     [ "$OPERATION" != "3" ] && return 0
     show_progress "$MSG_RESTORE_CONFIGS"
     mkdir -p /etc/sing-box
-    for f in config.json config2.json config3.json url_config.json url_config2.json url_config3.json; do
-        if [ -f "/tmp/singbox-ui-backup-$f" ]; then
-            cat "/tmp/singbox-ui-backup-$f" > "/etc/sing-box/$f"
-            rm -f "/tmp/singbox-ui-backup-$f"
-        fi
+    for f in /tmp/singbox-ui-config-backup/*.json; do
+        [ -f "$f" ] && cp -f "$f" /etc/sing-box/
     done
+    rm -rf /tmp/singbox-ui-config-backup
 }
 
 # Установка singbox / Install singbox
