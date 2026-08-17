@@ -1,1 +1,1 @@
-luci-app-singbox-ui-pr-81-embed-i18n-into-main-package-add-chinese-docs-scripts-20260522-1539.ipk
+luci-app-singbox-ui-commit-37a1077-20260817-1654.ipk
