@@ -1,10 +1,26 @@
-name: Build luci-app-singbox-ui from TAG
-run-name: Build release TAG ${{ github.ref_name }}
+name: Release luci-app-singbox-ui
+run-name: Release ${{ inputs.tag_name }} (${{ inputs.release_type }})
 
 on:
-  push:
-    tags:
-      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Tag version (e.g. v3.1.0-rc5 or v3.1.0)"
+        required: true
+        type: string
+      release_type:
+        description: "Release type"
+        required: true
+        type: choice
+        options:
+          - prerelease
+          - release
+        default: prerelease
+      target_branch:
+        description: "Target branch"
+        required: true
+        type: string
+        default: "main"
 
 permissions:
   contents: write
@@ -21,14 +37,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5.0.0
         with:
+          ref: ${{ inputs.target_branch }}
           fetch-depth: 0
 
       - name: Parse Tag Version
         id: tag
         shell: bash
+        env:
+          TAG_NAME: ${{ inputs.tag_name }}
         run: |
           set -euo pipefail
-          TAG_NAME="${GITHUB_REF_NAME}"
           TAG_VERSION="${TAG_NAME#v}"
 
           if [ "$TAG_VERSION" = "$TAG_NAME" ]; then
@@ -43,50 +61,20 @@ jobs:
 
           echo "tag_version=$TAG_VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Detect Target Branch From Tag Commit
+      - name: Set Target Branch
         id: branch
         shell: bash
-        env:
-          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
-          set -euo pipefail
-          git fetch origin "+refs/heads/*:refs/remotes/origin/*"
-
-          mapfile -t BRANCHES < <(git branch -r --contains "$GITHUB_SHA" | sed 's/^[*[:space:]]*//' | grep -v 'origin/HEAD' | sed 's#^origin/##' || true)
-
-          TARGET_BRANCH=""
-          for b in "${BRANCHES[@]}"; do
-            if [ "$b" != "$DEFAULT_BRANCH" ]; then
-              TARGET_BRANCH="$b"
-              break
-            fi
-          done
-
-          if [ -z "$TARGET_BRANCH" ] && [ "${#BRANCHES[@]}" -gt 0 ]; then
-            TARGET_BRANCH="${BRANCHES[0]}"
-          fi
-
-          if [ -z "$TARGET_BRANCH" ]; then
-            TARGET_BRANCH="$DEFAULT_BRANCH"
-          fi
-
-          echo "target_branch=$TARGET_BRANCH" >> "$GITHUB_OUTPUT"
-          echo "Will sync version in branch: $TARGET_BRANCH"
+          echo "target_branch=${{ inputs.target_branch }}" >> "$GITHUB_OUTPUT"
 
       - name: Sync Version In Makefile And Push
         id: sync
         shell: bash
         env:
           TAG_VERSION: ${{ steps.tag.outputs.tag_version }}
-          TARGET_BRANCH: ${{ steps.branch.outputs.target_branch }}
+          TARGET_BRANCH: ${{ inputs.target_branch }}
         run: |
           set -euo pipefail
-
-          if git show-ref --verify --quiet "refs/remotes/origin/${TARGET_BRANCH}"; then
-            git switch -C "${TARGET_BRANCH}" "origin/${TARGET_BRANCH}"
-          else
-            git switch --detach
-          fi
 
           PACKAGE_VERSION="$(printf '%s' "${TAG_VERSION}" | sed -E 's/-(alpha|beta|pre|rc|p)[.-]?([0-9]*)$/_\1\2/')"
           sed -i "s/^PKG_VERSION:=.*$/PKG_VERSION:=${PACKAGE_VERSION}/" luci-app-singbox-ui/Makefile
@@ -98,11 +86,7 @@ jobs:
             git -c user.name="github-actions[bot]" -c user.email="github-actions[bot]@users.noreply.github.com" \
               commit -m "github-actions[bot]: sync Makefile version to v${TAG_VERSION}"
 
-            if git show-ref --verify --quiet "refs/remotes/origin/${TARGET_BRANCH}"; then
-              git push origin "HEAD:${TARGET_BRANCH}"
-            else
-              echo "Target branch '${TARGET_BRANCH}' not found. Skipping push."
-            fi
+            git push origin "HEAD:${TARGET_BRANCH}"
           fi
 
           echo "sync_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
@@ -191,9 +175,12 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2.4.0
         with:
-          tag_name: ${{ github.ref_name }}
+          tag_name: ${{ inputs.tag_name }}
+          target_commitish: ${{ needs.sync-version.outputs.sync_sha }}
+          name: ${{ inputs.tag_name }}
           files: |
             release-ipk/*.ipk
             release-apk/*.apk
           draft: false
-          prerelease: ${{ contains(github.ref_name, '-') }}
+          prerelease: ${{ inputs.release_type == 'prerelease' }}
+          generate_release_notes: true

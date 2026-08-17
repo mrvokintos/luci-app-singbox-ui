@@ -32,7 +32,8 @@
 | `other/scripts/lib/pkg.sh` | APK/IPK, архитектура и операции пакетов |
 | `install.sh` | Bootstrap, скачивающий актуальные скрипты из `$BRANCH` |
 | `Dockerfile-ipk`, `Dockerfile-apk` | OpenWrt SDK-сборки |
-| `.github/workflows/build_luci-app-singbox-ui_from_tag.yml` | Сборка и GitHub Release по тегу |
+| `.github/workflows/build_luci-app-singbox-ui_from_tag.yml` | Ручная сборка и публикация GitHub Release (Release/Pre-release) |
+| `.github/workflows/build_luci-app-singbox-ui_from_pr.yml` | Автосборка артефактов при коммите/PR |
 | `tests/share-link.test.js` | Тесты parser |
 | `tests/helper.test.sh` | Тесты helper и защиты путей |
 
@@ -161,7 +162,9 @@ make defconfig
 make package/luci-app-singbox-ui/compile V=s -j4
 ```
 
-Tag workflow извлекает версию без `v`, синхронизирует Makefile, собирает IPK и APK, а затем публикует оба файла в GitHub Release. Теги с дефисом (`-rc4`, `-beta1`) получают `prerelease: true`.
+Release workflow (`build_luci-app-singbox-ui_from_tag.yml`) запускается вручную через `workflow_dispatch` с выбором версии тега и типа релиза (`prerelease` или `release`). Он извлекает версию без `v`, синхронизирует Makefile, собирает IPK и APK, а затем публикует оба файла в GitHub Release с выбранным флагом.
+
+Автосборка после каждого коммита в `main` или PR (`build_luci-app-singbox-ui_from_pr.yml`) только собирает пакеты и сохраняет их в артефактах GitHub Actions и каталоге `artifacts/` (runner builds для установщика), не создавая GitHub Release.
 
 ### Tag version и APK version — это не одно и то же
 
