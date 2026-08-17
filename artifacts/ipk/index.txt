@@ -1,1 +1,0 @@
-luci-app-singbox-ui-commit-37a1077-20260817-1654.ipk
