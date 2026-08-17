@@ -188,4 +188,4 @@ jobs:
             release-ipk/*.ipk
             release-apk/*.apk
           draft: false
-          prerelease: false
+          prerelease: ${{ contains(github.ref_name, '-') }}

@@ -15,9 +15,10 @@ Web interface for managing Sing-Box on OpenWrt 23/24/25.
 ## Features
 - Start, stop, and restart Sing-Box
 - Discover every JSON config in /etc/sing-box/
-- Apply or edit configs from a compact list
+- Apply, edit, import, download, or delete configs from a compact list
+- Format JSON and highlight its syntax without a heavyweight editor dependency
 - Generate configs from VLESS, VMess, Trojan, Shadowsocks, Hysteria(2), TUIC, SOCKS and HTTP links
-- Build generated configs from an editable routing/DNS template
+- Create and switch between multiple editable routing/DNS templates
 - Never overwrite configs in the background
 - Check service state and validate configs with the separately installed sing-box binary
 - Detect IPK/APK and OpenWrt architecture for Original, Extended, or Clean core builds

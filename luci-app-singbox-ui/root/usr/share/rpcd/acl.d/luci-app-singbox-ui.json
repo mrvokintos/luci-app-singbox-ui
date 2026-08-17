@@ -10,6 +10,8 @@
                 "/etc/sing-box/*": ["read"],
                 "/etc/singbox-ui": ["list"],
                 "/etc/singbox-ui/*": ["read"],
+                "/etc/singbox-ui/templates": ["list"],
+                "/etc/singbox-ui/templates/*": ["read"],
                 "/usr/bin/sing-box": ["exec"],
                 "/tmp/*": ["read"],
                 "/sbin/logread": ["exec"]
@@ -20,6 +22,7 @@
             "file": {
                 "/etc/sing-box/*": ["write"],
                 "/etc/singbox-ui/*": ["write"],
+                "/etc/singbox-ui/templates/*": ["write"],
                 "/tmp/*": ["write"],
                 "/usr/libexec/singbox-ui-helper": ["exec"]
             },
