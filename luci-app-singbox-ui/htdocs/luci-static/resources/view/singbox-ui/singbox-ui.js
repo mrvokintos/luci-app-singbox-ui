@@ -16,7 +16,7 @@ const LOG_MARKER=UI_DIR+'/log-clear-marker';
 const BIN='/usr/bin/sing-box';
 const SERVICE='/etc/init.d/sing-box';
 const HELPER='/usr/libexec/singbox-ui-helper';
-const UI_VERSION='3.1.0-rc3';
+const UI_VERSION='3.1.0-rc4';
 
 const RU={
 	'Configuration manager':'Менеджер конфигураций','Configs':'Конфиги','Generator':'Генератор','Template':'Шаблон','Templates':'Шаблоны','Logs':'Журнал',

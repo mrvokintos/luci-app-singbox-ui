@@ -88,7 +88,8 @@ jobs:
             git switch --detach
           fi
 
-          sed -i "s/^PKG_VERSION:=.*$/PKG_VERSION:=${TAG_VERSION}/" luci-app-singbox-ui/Makefile
+          PACKAGE_VERSION="$(printf '%s' "${TAG_VERSION}" | sed -E 's/-(alpha|beta|pre|rc|p)[.-]?([0-9]*)$/_\1\2/')"
+          sed -i "s/^PKG_VERSION:=.*$/PKG_VERSION:=${PACKAGE_VERSION}/" luci-app-singbox-ui/Makefile
 
           if git diff --quiet; then
             echo "No version changes detected."
@@ -124,9 +125,16 @@ jobs:
 
       - name: Ensure Version Equals Tag
         shell: bash
+        env:
+          TAG_VERSION: ${{ needs.sync-version.outputs.tag_version }}
+          PKG_TYPE: ${{ matrix.pkg_type }}
         run: |
           set -euo pipefail
-          sed -i "s/^PKG_VERSION:=.*$/PKG_VERSION:=${{ needs.sync-version.outputs.tag_version }}/" luci-app-singbox-ui/Makefile
+          PACKAGE_VERSION="${TAG_VERSION}"
+          if [ "${PKG_TYPE}" = "apk" ]; then
+            PACKAGE_VERSION="$(printf '%s' "${TAG_VERSION}" | sed -E 's/-(alpha|beta|pre|rc|p)[.-]?([0-9]*)$/_\1\2/')"
+          fi
+          sed -i "s/^PKG_VERSION:=.*$/PKG_VERSION:=${PACKAGE_VERSION}/" luci-app-singbox-ui/Makefile
 
       - name: Build Docker Image (${{ matrix.pkg_type }})
         uses: docker/build-push-action@v6.18.0
