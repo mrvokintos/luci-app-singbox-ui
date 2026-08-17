@@ -198,6 +198,7 @@ sh -n install.sh other/scripts/*.sh other/scripts/lib/*.sh \\
 node --check luci-app-singbox-ui/htdocs/luci-static/resources/view/singbox-ui/singbox-ui.js
 node --check luci-app-singbox-ui/htdocs/luci-static/resources/singbox-ui/share-link.js
 node tests/share-link.test.js
+node tests/version-parser.test.js
 sh tests/helper.test.sh
 jq empty luci-app-singbox-ui/root/usr/share/rpcd/acl.d/luci-app-singbox-ui.json
 jq -e '.route.default_domain_resolver == "local-dns"' \\

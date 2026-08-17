@@ -231,7 +231,7 @@ function init(root,initialConfigs,initialTemplates,initialTemplateName,initialTe
 	templateHighlight();
 
 	async function status(){const element=root.querySelector('#status'),on=await running();element.classList.toggle('running',on);element.lastElementChild.textContent=on?_('Running'):_('Stopped')}
-	async function binaryVersion(){const element=root.querySelector('#singboxVersion');try{if(!await hasBin())throw new Error('missing');const result=await fs.exec(BIN,['version']),line=cleanError(result.stdout||result.stderr).split('\n')[0],match=line.match(/(?:sing-box\s+version\s+)?v?([0-9][\w.+-]*)/i);element.textContent=match?'sing-box '+match[1]:'sing-box —'}catch(_e){element.textContent='sing-box —'}}
+	async function binaryVersion(){const element=root.querySelector('#singboxVersion');try{const result=await fs.exec(BIN,['version']);if((result.code|0)!==0&&!result.stdout)throw new Error('missing');const text=cleanError(result.stdout||result.stderr),line=text.split(/\r?\n/).map(s=>s.trim()).find(Boolean)||'',match=line.match(/(?:^|\s)(?:sing-box(?:-extended)?\s+version\s+v?([0-9][\w.+-]*|unknown)|sing-box(?:-extended)?\s+v?([0-9][\w.+-]*)|version\s+v?([0-9][\w.+-]*|unknown))/i),v=match&&(match[1]||match[2]||match[3]);element.textContent=v?'sing-box '+v:'sing-box —'}catch(_e){element.textContent='sing-box —'}}
 
 	function renderConfigs(){
 		if(!configs.length){list.innerHTML='<div class="sbox-note">'+h(_('No JSON configs found'))+'</div>';return}

@@ -12,7 +12,7 @@
                 "/etc/singbox-ui/*": ["read"],
                 "/etc/singbox-ui/templates": ["list"],
                 "/etc/singbox-ui/templates/*": ["read"],
-                "/usr/bin/sing-box": ["exec"],
+                "/usr/bin/sing-box": ["read", "exec"],
                 "/tmp/*": ["read"],
                 "/sbin/logread": ["exec"]
             },
