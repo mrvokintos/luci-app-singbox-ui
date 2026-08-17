@@ -1,5 +1,5 @@
 name: Build luci-app-singbox-ui artifacts
-run-name: Build artifacts (${{ github.event_name == 'pull_request' && format('PR #{0}', github.event.pull_request.number) || github.ref_name }})
+run-name: "Build artifacts (${{ github.event_name == 'pull_request' && format('PR #{0}', github.event.pull_request.number) || github.ref_name }})"
 
 on:
   push:
