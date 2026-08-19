@@ -1,0 +1,1 @@
+luci-app-singbox-ui-dev-00286f8-20260819-1151.ipk
