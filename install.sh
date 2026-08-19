@@ -116,11 +116,38 @@ complete_script() {
     cleanup
 }
 
+# Выбор ветки / Branch selection
+choose_branch() {
+    if [ -z "$BRANCH_SELECTED" ]; then
+        while true; do
+            show_message "Выберите ветку скриптов / Select script branch [1/2]:"
+            show_message "1. main (стабильная / stable, по умолчанию)"
+            show_message "2. dev (разработка / development)"
+            read_input " Ваш выбор / Your choice [1/2, Enter=1]: " B_CHOICE
+            case "${B_CHOICE:-1}" in
+                1)
+                    BRANCH="main"
+                    break
+                    ;;
+                2)
+                    BRANCH="dev"
+                    break
+                    ;;
+                *)
+                    show_error "Неверный выбор / Invalid choice"
+                    ;;
+            esac
+        done
+        BRANCH_SELECTED=1
+    fi
+}
+
 # ======== Основной код / Main code ========
 
 run_steps_with_separator \
     "::${BRANCH}" \
-    init_language
+    init_language \
+    choose_branch
 
 run_steps_with_separator \
     "::$MSG_INSTALL_TITLE" \

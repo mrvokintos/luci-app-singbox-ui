@@ -5,12 +5,13 @@ on:
   push:
     branches:
       - main
+      - dev
     paths-ignore:
-      - 'artifacts/**'
       - '**.md'
   pull_request:
     branches:
       - main
+      - dev
   workflow_dispatch:
 
 permissions:
@@ -67,7 +68,8 @@ jobs:
             NEW_NAME="luci-app-singbox-ui-pr-${PR_NUM}-${SAFE_TITLE}-${DATE}.${EXT}"
           else
             SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-            NEW_NAME="luci-app-singbox-ui-commit-${SHORT_SHA}-${DATE}.${EXT}"
+            BRANCH_NAME="${{ github.ref_name }}"
+            NEW_NAME="luci-app-singbox-ui-${BRANCH_NAME}-${SHORT_SHA}-${DATE}.${EXT}"
           fi
           for f in artifacts-$EXT/*.$EXT; do
             [ -f "$f" ] || continue
@@ -82,17 +84,28 @@ jobs:
           path: artifacts-${{ matrix.pkg_type }}/
 
   commit:
-    name: Save runner artifacts to main branch
+    name: Save runner artifacts to artifacts branch
     runs-on: ubuntu-latest
     needs: build
-    if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.event_name == 'pull_request'
 
     steps:
-      - name: Checkout main branch
+      - name: Checkout repository
         uses: actions/checkout@v5.0.0
         with:
-          ref: main
           fetch-depth: 0
+
+      - name: Switch to artifacts branch
+        run: |
+          git fetch origin "+refs/heads/*:refs/remotes/origin/*" || true
+          if git show-ref --verify --quiet "refs/remotes/origin/artifacts"; then
+            git switch -C artifacts origin/artifacts
+          elif git show-ref --verify --quiet "refs/heads/artifacts"; then
+            git switch artifacts
+          else
+            git switch --orphan artifacts
+            git rm -rf . || true
+          fi
 
       - name: Download ipk artifact
         uses: actions/download-artifact@v4
@@ -106,89 +119,83 @@ jobs:
           name: built-apk
           path: ./new-apk/
 
-      - name: Copy to artifacts/ipk and artifacts/apk
+      - name: Determine Target Branch Folder
+        id: branch_folder
         run: |
-          mkdir -p artifacts/ipk artifacts/apk
-          cp -n ./new-ipk/*.ipk ./artifacts/ipk/ 2>/dev/null || true
-          cp -n ./new-apk/*.apk ./artifacts/apk/ 2>/dev/null || true
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            TARGET_BRANCH="${{ github.base_ref }}"
+          else
+            TARGET_BRANCH="${{ github.ref_name }}"
+          fi
+          if [ "$TARGET_BRANCH" != "dev" ]; then
+            TARGET_BRANCH="main"
+          fi
+          echo "folder=$TARGET_BRANCH" >> "$GITHUB_OUTPUT"
 
-      - name: Remove old ipk files (>= 7 days)
+      - name: Copy to target branch folders
+        env:
+          TARGET: ${{ steps.branch_folder.outputs.folder }}
         run: |
-          for file in artifacts/ipk/*.ipk; do
-            [ -f "$file" ] || continue
-            basename=$(basename "$file")
-            date_part=$(echo "$basename" | sed -E 's/.*-([0-9]{8}-[0-9]{4})\.ipk$/\1/')
-            if [[ "$date_part" =~ ^[0-9]{8}-[0-9]{4}$ ]]; then
-              ymd=${date_part:0:8}
-              hm=${date_part:9:4}
-              h=${hm:0:2}
-              m=${hm:2:2}
-              file_date=$(date -d "${ymd:0:4}-${ymd:4:2}-${ymd:6:2} ${h}:${m}:00" +%s)
-              now=$(date +%s)
-              diff=$(( (now - file_date) / 86400 ))
-              if [ "$diff" -ge 7 ]; then
-                echo "Deleting old file: $file"
-                rm "$file"
+          mkdir -p "${TARGET}/ipk" "${TARGET}/apk"
+          cp -n ./new-ipk/*.ipk "${TARGET}/ipk/" 2>/dev/null || true
+          cp -n ./new-apk/*.apk "${TARGET}/apk/" 2>/dev/null || true
+
+      - name: Remove old files (>= 7 days) in target branch
+        env:
+          TARGET: ${{ steps.branch_folder.outputs.folder }}
+        run: |
+          for ext in ipk apk; do
+            for file in "${TARGET}/${ext}"/*."${ext}"; do
+              [ -f "$file" ] || continue
+              basename=$(basename "$file")
+              date_part=$(echo "$basename" | sed -E 's/.*-([0-9]{8}-[0-9]{4})\.'${ext}'$/\1/')
+              if [[ "$date_part" =~ ^[0-9]{8}-[0-9]{4}$ ]]; then
+                ymd=${date_part:0:8}
+                hm=${date_part:9:4}
+                h=${hm:0:2}
+                m=${hm:2:2}
+                file_date=$(date -d "${ymd:0:4}-${ymd:4:2}-${ymd:6:2} ${h}:${m}:00" +%s)
+                now=$(date +%s)
+                diff=$(( (now - file_date) / 86400 ))
+                if [ "$diff" -ge 7 ]; then
+                  echo "Deleting old file: $file"
+                  rm "$file"
+                fi
               fi
-            fi
+            done
           done
 
-      - name: Remove old apk files (>= 7 days)
+      - name: Update index.txt for target branch
+        env:
+          TARGET: ${{ steps.branch_folder.outputs.folder }}
         run: |
-          for file in artifacts/apk/*.apk; do
-            [ -f "$file" ] || continue
-            basename=$(basename "$file")
-            date_part=$(echo "$basename" | sed -E 's/.*-([0-9]{8}-[0-9]{4})\.apk$/\1/')
-            if [[ "$date_part" =~ ^[0-9]{8}-[0-9]{4}$ ]]; then
-              ymd=${date_part:0:8}
-              hm=${date_part:9:4}
-              h=${hm:0:2}
-              m=${hm:2:2}
-              file_date=$(date -d "${ymd:0:4}-${ymd:4:2}-${ymd:6:2} ${h}:${m}:00" +%s)
-              now=$(date +%s)
-              diff=$(( (now - file_date) / 86400 ))
-              if [ "$diff" -ge 7 ]; then
-                echo "Deleting old file: $file"
-                rm "$file"
-              fi
+          shopt -s nullglob
+          for ext in ipk apk; do
+            files=("${TARGET}/${ext}"/*."${ext}")
+            if [ ${#files[@]} -eq 0 ]; then
+              echo "" > "${TARGET}/${ext}/index.txt"
+            else
+              printf "%s\n" "${files[@]##*/}" > "${TARGET}/${ext}/index.txt"
             fi
           done
-
-      - name: Update index.txt for ipk
-        run: |
-          shopt -s nullglob
-          files=(artifacts/ipk/*.ipk)
-          if [ ${#files[@]} -eq 0 ]; then
-            echo "" > artifacts/ipk/index.txt
-          else
-            printf "%s\n" "${files[@]##*/}" > artifacts/ipk/index.txt
-          fi
-
-      - name: Update index.txt for apk
-        run: |
-          shopt -s nullglob
-          files=(artifacts/apk/*.apk)
-          if [ ${#files[@]} -eq 0 ]; then
-            echo "" > artifacts/apk/index.txt
-          else
-            printf "%s\n" "${files[@]##*/}" > artifacts/apk/index.txt
-          fi
 
       - name: Commit and push changes
+        env:
+          TARGET: ${{ steps.branch_folder.outputs.folder }}
         run: |
-          echo "📤 Committing updated packages to main"
+          echo "📤 Committing updated packages for ${TARGET} to artifacts branch"
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add artifacts/
+          git add "${TARGET}/ipk/" "${TARGET}/apk/"
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
             if [ "${{ github.event_name }}" = "pull_request" ]; then
-              MSG="github-actions[bot]: update ipk/apk from PR #${{ github.event.pull_request.number }} [skip ci]"
+              MSG="github-actions[bot]: update ${TARGET} ipk/apk from PR #${{ github.event.pull_request.number }}"
             else
               SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-              MSG="github-actions[bot]: update ipk/apk from commit ${SHORT_SHA} [skip ci]"
+              MSG="github-actions[bot]: update ${TARGET} ipk/apk from commit ${SHORT_SHA}"
             fi
             git commit -m "$MSG"
-            git push origin HEAD:main
+            git push origin HEAD:artifacts
           fi

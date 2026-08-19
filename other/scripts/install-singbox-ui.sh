@@ -109,6 +109,9 @@ init_language() {
             MSG_CLEANUP="Очистка файлов..."
             MSG_CLEANUP_DONE="Файлы удалены!"
             MSG_SELECT_RUNNER="Выберите Runner сборку для установки:"
+            MSG_CHOOSE_RUNNER_BRANCH="Выберите ветку для runner-сборки:"
+            MSG_RUNNER_BRANCH_1="1) main (по умолчанию)"
+            MSG_RUNNER_BRANCH_2="2) dev"
             MSG_NO_PRE_RELEASE="Не удалось получить pre-release, используем latest."
             MSG_RUNNER_INDEX_UNAVAILABLE="Не удалось загрузить список runner сборок (index.txt)."
             MSG_RUNNER_LIST_EMPTY="Список runner сборок пуст."
@@ -157,6 +160,9 @@ init_language() {
             MSG_CLEANUP="Cleaning up files..."
             MSG_CLEANUP_DONE="Files removed!"
             MSG_SELECT_RUNNER="Select Runner build to install:"
+            MSG_CHOOSE_RUNNER_BRANCH="Select branch for runner build:"
+            MSG_RUNNER_BRANCH_1="1) main (default)"
+            MSG_RUNNER_BRANCH_2="2) dev"
             MSG_NO_PRE_RELEASE="Failed to fetch pre-release, using latest."
             MSG_RUNNER_INDEX_UNAVAILABLE="Failed to load runner build list (index.txt)."
             MSG_RUNNER_LIST_EMPTY="Runner build list is empty."
@@ -327,7 +333,28 @@ choose_install_version() {
             break
             ;;
         3)
-            local runner_base_url="https://raw.githubusercontent.com/mrvokintos/luci-app-singbox-ui/${BRANCH}/artifacts/${PKG_EXT}"
+            local runner_branch="main"
+            while true; do
+                show_message "$MSG_CHOOSE_RUNNER_BRANCH"
+                show_message "$MSG_RUNNER_BRANCH_1"
+                show_message "$MSG_RUNNER_BRANCH_2"
+                read_input "$MSG_YOUR_CHOICE" RUNNER_BRANCH_CHOICE
+                case "${RUNNER_BRANCH_CHOICE:-1}" in
+                    1)
+                        runner_branch="main"
+                        break
+                        ;;
+                    2)
+                        runner_branch="dev"
+                        break
+                        ;;
+                    *)
+                        show_error "$MSG_INVALID_CHOICE. $MSG_REPEAT_INPUT"
+                        ;;
+                esac
+            done
+
+            local runner_base_url="https://raw.githubusercontent.com/mrvokintos/luci-app-singbox-ui/artifacts/${runner_branch}/${PKG_EXT}"
             local index_url="$runner_base_url/index.txt"
 
             show_progress "$MSG_SELECT_RUNNER"

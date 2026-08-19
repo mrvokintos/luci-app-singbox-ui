@@ -183,7 +183,11 @@ init_language() {
             MSG_SINGBOX_CHOOSE="Выберите сборку ядра sing-box:"
             MSG_SINGBOX_OPTION1="1) Original — SagerNet/sing-box (по умолчанию)"
             MSG_SINGBOX_OPTION2="2) Extended — shtorm-7/sing-box-extended"
-            MSG_SINGBOX_OPTION3="3) Clean — mrvokintos/sing-box-extended"
+            MSG_SINGBOX_OPTION3="3) Clean — mrvokintos/sing-box-clean"
+            MSG_CLEAN_CHOOSE="Выберите вариант Clean ядра:"
+            MSG_CLEAN_OPTION1="1) Origin Clean (по умолчанию)"
+            MSG_CLEAN_OPTION2="2) Extended Clean"
+            MSG_CLEAN_PROMPT="Введите ваш выбор [1-2, Enter=1]:"
             MSG_SINGBOX_PROMPT="Введите ваш выбор [1-3, Enter=1]:"
             MSG_SINGBOX_ARCH="Архитектура OpenWrt: %s, формат пакета: %s"
             MSG_SINGBOX_RELEASE="Последний релиз %s: %s"
@@ -266,7 +270,11 @@ init_language() {
             MSG_SINGBOX_CHOOSE="Choose the sing-box core build:"
             MSG_SINGBOX_OPTION1="1) Original — SagerNet/sing-box (default)"
             MSG_SINGBOX_OPTION2="2) Extended — shtorm-7/sing-box-extended"
-            MSG_SINGBOX_OPTION3="3) Clean — mrvokintos/sing-box-extended"
+            MSG_SINGBOX_OPTION3="3) Clean — mrvokintos/sing-box-clean"
+            MSG_CLEAN_CHOOSE="Choose Clean core variant:"
+            MSG_CLEAN_OPTION1="1) Origin Clean (default)"
+            MSG_CLEAN_OPTION2="2) Extended Clean"
+            MSG_CLEAN_PROMPT="Enter your choice [1-2, Enter=1]:"
             MSG_SINGBOX_PROMPT="Enter your choice [1-3, Enter=1]:"
             MSG_SINGBOX_ARCH="OpenWrt architecture: %s, package format: %s"
             MSG_SINGBOX_RELEASE="Latest %s release: %s"
@@ -461,6 +469,7 @@ install_release_core() {
     local repo="$1"
     local label="$2"
     local package_name="$3"
+    local fixed_tag="${4:-}"
     local arch latest_html tag assets asset_path asset_url package_file
 
     arch=$(detect_openwrt_arch) || {
@@ -469,11 +478,15 @@ install_release_core() {
     }
     show_message "$(printf "$MSG_SINGBOX_ARCH" "$arch" "$PKG_EXT")"
 
-    latest_html=$(fetch_text "https://github.com/${repo}/releases/latest") || {
-        show_error "$(printf "$MSG_SINGBOX_RELEASE_ERROR" "$label")"
-        return 1
-    }
-    tag=$(printf '%s' "$latest_html" | grep -o 'releases/expanded_assets/[^"?]*' | head -n 1 | sed 's#releases/expanded_assets/##')
+    if [ -n "$fixed_tag" ]; then
+        tag="$fixed_tag"
+    else
+        latest_html=$(fetch_text "https://github.com/${repo}/releases/latest") || {
+            show_error "$(printf "$MSG_SINGBOX_RELEASE_ERROR" "$label")"
+            return 1
+        }
+        tag=$(printf '%s' "$latest_html" | grep -o 'releases/expanded_assets/[^"?]*' | head -n 1 | sed 's#releases/expanded_assets/##')
+    fi
     [ -n "$tag" ] || {
         show_error "$(printf "$MSG_SINGBOX_RELEASE_ERROR" "$label")"
         return 1
@@ -481,7 +494,16 @@ install_release_core() {
     show_message "$(printf "$MSG_SINGBOX_RELEASE" "$label" "$tag")"
 
     assets=$(fetch_text "https://github.com/${repo}/releases/expanded_assets/${tag}") || return 1
-    asset_path=$(printf '%s' "$assets" | grep -o 'href="[^"]*"' | sed 's/^href="//;s/"$//' | grep "_openwrt_${arch}\.${PKG_EXT}$" | head -n 1)
+
+    if [ "$package_name" = "sing-box" ]; then
+        asset_path=$(printf '%s' "$assets" | grep -o 'href="[^"]*"' | sed 's/^href="//;s/"$//' | grep -v 'sing-box-extended' | grep -E "(sing-box|sing_box).*_openwrt_${arch}\.${PKG_EXT}$" | head -n 1)
+        if [ -z "$asset_path" ]; then
+            asset_path=$(printf '%s' "$assets" | grep -o 'href="[^"]*"' | sed 's/^href="//;s/"$//' | grep -v 'sing-box-extended' | grep "_openwrt_${arch}\.${PKG_EXT}$" | head -n 1)
+        fi
+    else
+        asset_path=$(printf '%s' "$assets" | grep -o 'href="[^"]*"' | sed 's/^href="//;s/"$//' | grep 'sing-box-extended' | grep "_openwrt_${arch}\.${PKG_EXT}$" | head -n 1)
+    fi
+
     [ -n "$asset_path" ] || {
         show_error "$(printf "$MSG_SINGBOX_ASSET_MISSING" "$tag" "$arch" "$PKG_EXT")"
         return 1
@@ -529,9 +551,34 @@ install_singbox() {
     fi
 
     case "$SINGBOX_INSTALL_MODE" in
-        1) install_release_core "SagerNet/sing-box" "Original" "sing-box" ;;
-        2) install_release_core "shtorm-7/sing-box-extended" "Extended" "sing-box-extended" ;;
-        3) install_release_core "mrvokintos/sing-box-extended" "Clean" "sing-box-extended" ;;
+        1)
+            install_release_core "SagerNet/sing-box" "Original" "sing-box"
+            ;;
+        2)
+            install_release_core "shtorm-7/sing-box-extended" "Extended" "sing-box-extended"
+            ;;
+        3)
+            local clean_choice=""
+            while true; do
+                show_message ""
+                show_message "$MSG_CLEAN_CHOOSE"
+                show_message "$MSG_CLEAN_OPTION1"
+                show_message "$MSG_CLEAN_OPTION2"
+                show_message ""
+                read_input "$MSG_CLEAN_PROMPT" clean_choice
+                clean_choice="${clean_choice:-1}"
+                case "$clean_choice" in
+                    1|2) break ;;
+                    *) show_error "$MSG_INVALID_INPUT. $MSG_REPEAT_INPUT" ;;
+                esac
+            done
+
+            if [ "$clean_choice" = "1" ]; then
+                install_release_core "mrvokintos/sing-box-clean" "Origin Clean" "sing-box" "latest"
+            else
+                install_release_core "mrvokintos/sing-box-clean" "Extended Clean" "sing-box-extended" "latest"
+            fi
+            ;;
     esac || {
         show_error "$MSG_INSTALL_SINGBOX_ERROR"
         exit 1

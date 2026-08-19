@@ -137,12 +137,12 @@ cleanup <safe-prefix>
 ```text
 1 Original — SagerNet/sing-box
 2 Extended — shtorm-7/sing-box-extended
-3 Clean — mrvokintos/sing-box-extended
+3 Clean — mrvokintos/sing-box-clean (Origin Clean / Extended Clean)
 ```
 
 Выбор передаётся в `install-singbox.sh` через `SINGBOX_INSTALL_MODE`. Нельзя возвращать скрытый default Original в combined-flow.
 
-`install-singbox.sh` определяет архитектуру из `/etc/openwrt_release`, `/etc/apk/arch` или `opkg print-architecture`, затем выбирает `.apk`/`.ipk` и GitHub asset с совпадающей OpenWrt-архитектурой. Extended и Clean используют пакет `sing-box-extended` и конфликтуют с Original `sing-box`.
+`install-singbox.sh` определяет архитектуру из `/etc/openwrt_release`, `/etc/apk/arch` или `opkg print-architecture`, затем выбирает `.apk`/`.ipk` и GitHub asset с совпадающей OpenWrt-архитектурой. Extended и Extended Clean используют пакет `sing-box-extended` и конфликтуют с Original / Origin Clean `sing-box`.
 
 `install-singbox-ui.sh` предлагает Latest, Pre-release и Runner PR. Latest ищет стабильный release, Pre-release — prerelease текущей ветки, Runner — тестовый пакет pull request. Размеры в меню приблизительные; текущие RC-пакеты около 15 КБ.
 
