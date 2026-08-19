@@ -65,7 +65,7 @@ ensure_pkg_library() {
 
 ensure_mode_switch() {
     mkdir -p "$SCRIPT_DIR/lib" 2>/dev/null
-    local ms_url="https://raw.githubusercontent.com/mrvokintos/luci-app-singbox-ui/$BRANCH/luci-app-singbox-ui/root/usr/bin/singbox-ui/singbox-ui-mode-switch"
+    local ms_url="https://raw.githubusercontent.com/mrvokintos/luci-app-singbox-ui/$BRANCH/other/scripts/lib/singbox-ui-mode-switch"
     if command -v wget >/dev/null 2>&1; then
         wget -O "$MS_PATH" "$ms_url" || return 1
     elif command -v curl >/dev/null 2>&1; then
