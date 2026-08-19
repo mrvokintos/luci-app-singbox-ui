@@ -500,8 +500,14 @@ install_release_core() {
         if [ -z "$asset_path" ]; then
             asset_path=$(printf '%s' "$assets" | grep -o 'href="[^"]*"' | sed 's/^href="//;s/"$//' | grep -v 'sing-box-extended' | grep "_openwrt_${arch}\.${PKG_EXT}$" | head -n 1)
         fi
+        if [ -z "$asset_path" ]; then
+            asset_path=$(printf '%s' "$assets" | grep -o 'href="[^"]*"' | sed 's/^href="//;s/"$//' | grep -v 'sing-box-extended' | grep -E "/(sing-box|sing_box)([-_][^/]*)?\.${PKG_EXT}$" | head -n 1)
+        fi
     else
         asset_path=$(printf '%s' "$assets" | grep -o 'href="[^"]*"' | sed 's/^href="//;s/"$//' | grep 'sing-box-extended' | grep "_openwrt_${arch}\.${PKG_EXT}$" | head -n 1)
+        if [ -z "$asset_path" ]; then
+            asset_path=$(printf '%s' "$assets" | grep -o 'href="[^"]*"' | sed 's/^href="//;s/"$//' | grep -E "/sing-box-extended([-_][^/]*)?\.${PKG_EXT}$" | head -n 1)
+        fi
     fi
 
     [ -n "$asset_path" ] || {
