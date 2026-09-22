@@ -10,7 +10,7 @@
 > Использование на ваш страх и риск.
 
 ## Скриншот
-<img width="972" height="858" alt="Скриншот luci-app-singbox-ui" src="https://github.com/user-attachments/assets/026aca3e-ba20-479a-b8bd-3e42344f9eff" />
+<img width="972" height="858" alt="Скриншот luci-app-singbox-ui" src="https://github.com/mrvokintos/luci-app-singbox-ui/blob/4f8569f6b9b3d42caeb490ecf8ae19ce2c42db5a/other/interface.png" />
 
 ## Возможности
 - Запуск, остановка и перезапуск Sing-Box
