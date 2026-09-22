@@ -1,1 +1,1 @@
-luci-app-singbox-ui-main-faa3560-20260817-1712.ipk
+luci-app-singbox-ui-main-d4c3940-20260922-1225.ipk
