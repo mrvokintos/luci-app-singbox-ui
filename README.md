@@ -10,7 +10,7 @@ Web interface for managing Sing-Box on OpenWrt 23/24/25.
 > Use at your own risk.
 
 ## Screenshot
-<img width="972" height="858" alt="luci-app-singbox-ui screenshot" src="https://github.com/user-attachments/assets/198efa7a-6861-4f5f-9685-c717f3bb82a1" />
+<img width="972" height="858" alt="luci-app-singbox-ui screenshot" src="https://github.com/mrvokintos/luci-app-singbox-ui/blob/4f8569f6b9b3d42caeb490ecf8ae19ce2c42db5a/other/interface.png" />
 
 ## Features
 - Start, stop, and restart Sing-Box
