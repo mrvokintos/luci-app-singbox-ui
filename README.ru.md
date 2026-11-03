@@ -27,12 +27,33 @@
 wget -O /root/install.sh https://raw.githubusercontent.com/mrvokintos/luci-app-singbox-ui/main/install.sh && chmod 0755 /root/install.sh && BRANCH="main" sh /root/install.sh
 ```
 
-После запуска скрипта:
-1. Выберите режим (`Singbox-ui`, `Singbox` или оба сразу)
-2. Выберите операцию (`Установка`, `Удаление`, `Переустановка/Обновление`)
-3. При установке sing-box выберите ядро: `Original` (по умолчанию), `Extended` или очищенный `Clean`
+Скрипт подключает репозиторий [openwrt.mrvokintos.ru](https://openwrt.mrvokintos.ru), ставит из него панель и запускает `singbox-ui-setup` — полноэкранную настройку:
 
-В меню выбор делается стрелками `↑`/`↓` (или `j`/`k`) и `Enter`, цифра сразу выбирает пункт. Без терминала или с `UI_PLAIN=1` установщик просит ввести номер пункта.
+| Настройка | Значения |
+| --- | --- |
+| Ядро sing-box | `Original`, `Extended`, `Clean`, `Clean Extended`. На `aarch64_cortex-a53` сборки Clean ставятся из репозитория, на других архитектурах — с GitHub |
+| Канал обновлений | `stable`, `beta`, `git` (сборки `main`), `dev` (сборки `dev`) |
+| Автообновление | выключено, только панель (по умолчанию), панель и ядро |
+| IPv6 | отключить или не менять |
+| config.json | не менять или открыть в редакторе |
+
+Перед применением «Применить» показывает, что будет сделано. Там же можно поставить сборку панели из артефактов CI (PR / коммит) и удалить всё.
+
+`singbox-ui-setup` входит в пакет, его можно запускать повторно в любой момент. Без терминала или с `--plain` он задаёт вопросы по очереди; `--yes` применяет без вопросов, `--dry-run` только показывает команды. Управление: `↑`/`↓` (или `j`/`k`), `Enter`, `q` или `←` — назад.
+
+Канал выбирается так: `CHANNEL=dev sh /root/install.sh`.
+
+### Автообновление
+Автообновление — ночная задача cron (`/usr/libexec/singbox-ui-autoupdate`). Ядро обновляется, только если оно поставлено из репозитория и новый бинарник принимает текущий `config.json`. Иначе ядро не трогается, причина пишется в системный лог (`logread -e singbox-ui`).
+
+### Установка из репозитория вручную
+```bash
+wget -O /etc/apk/keys/openwrt.rsa.pub https://openwrt.mrvokintos.ru/keys/openwrt.rsa.pub
+echo "https://openwrt.mrvokintos.ru/packages/all/APKINDEX.tar.gz" > /etc/apk/repositories.d/mrvoki.list
+apk update && apk add luci-app-singbox-ui
+singbox-ui-setup
+```
+apk 3 нужен полный путь к `APKINDEX.tar.gz`, без него он ищет индекс в `<url>/<arch>/`. Пока первоначальная настройка не сделана, панель показывает напоминание.
 
 ## Быстрые подсказки
 Очистить старый SSH-ключ:

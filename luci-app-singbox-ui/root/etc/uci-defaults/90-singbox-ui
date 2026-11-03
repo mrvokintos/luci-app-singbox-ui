@@ -1,0 +1,9 @@
+#!/bin/sh
+# sing-box должен работать от root, иначе он не создаст TUN-интерфейс.
+# Сервис здесь не включается: это делает singbox-ui-setup.
+# sing-box must run as root to create the TUN interface. The service is not
+# enabled here: singbox-ui-setup does that.
+if [ -f /etc/config/sing-box ] && [ "$(uci -q get sing-box.main.user)" != root ]; then
+    uci -q set sing-box.main.user=root && uci -q commit sing-box
+fi
+exit 0

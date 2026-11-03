@@ -28,12 +28,33 @@ Web interface for managing Sing-Box on OpenWrt 23/24/25.
 wget -O /root/install.sh https://raw.githubusercontent.com/mrvokintos/luci-app-singbox-ui/main/install.sh && chmod 0755 /root/install.sh && BRANCH="main" sh /root/install.sh
 ```
 
-After running script:
-1. Choose mode (`Singbox-ui`, `Singbox`, or both)
-2. Choose operation (`Install`, `Uninstall`, `Reinstall/Update`)
-3. When installing sing-box, choose `Original` (default), `Extended`, or the stripped-down `Clean` core
+The script adds the [openwrt.mrvokintos.ru](https://openwrt.mrvokintos.ru) repository, installs the panel from it and starts `singbox-ui-setup`, a full-screen setup screen:
 
-Menus are navigated with `↑`/`↓` (or `j`/`k`) and `Enter`; a digit picks an item at once. Without a terminal, or with `UI_PLAIN=1`, the installer asks for item numbers instead.
+| Setting | Values |
+| --- | --- |
+| sing-box core | `Original`, `Extended`, `Clean`, `Clean Extended`. On `aarch64_cortex-a53` the Clean builds come from the repository, elsewhere from GitHub |
+| Update channel | `stable`, `beta`, `git` (builds of `main`), `dev` (builds of `dev`) |
+| Auto-update | off, panel only (default), panel and core |
+| IPv6 | disable or keep |
+| config.json | keep or open in an editor |
+
+`Apply` shows the planned changes first. The same screen also installs a panel build from CI artifacts (PR / commit) and removes everything.
+
+`singbox-ui-setup` ships with the package, so it can be run again at any time. Without a terminal, or with `--plain`, it asks the questions one by one; `--yes` applies without questions, `--dry-run` only prints the commands. Use `↑`/`↓` (or `j`/`k`), `Enter`, and `q` or `←` to go back.
+
+Choose the channel with `CHANNEL=dev sh /root/install.sh`.
+
+### Auto-update
+Auto-update is a nightly cron job (`/usr/libexec/singbox-ui-autoupdate`). The core is updated only if it was installed from the repository, and only if the new binary accepts the current `config.json`; otherwise it is left alone and the reason goes to the system log (`logread -e singbox-ui`).
+
+### Installing from the repository manually
+```bash
+wget -O /etc/apk/keys/openwrt.rsa.pub https://openwrt.mrvokintos.ru/keys/openwrt.rsa.pub
+echo "https://openwrt.mrvokintos.ru/packages/all/APKINDEX.tar.gz" > /etc/apk/repositories.d/mrvoki.list
+apk update && apk add luci-app-singbox-ui
+singbox-ui-setup
+```
+apk 3 needs the full path to `APKINDEX.tar.gz`. Without it, it looks for the index in `<url>/<arch>/`. The panel also shows a reminder until the initial setup is done.
 
 ## Quick Tips
 Clear old SSH key:

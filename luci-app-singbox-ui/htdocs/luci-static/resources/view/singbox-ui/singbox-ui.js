@@ -37,7 +37,10 @@ const RU={
 	'The default template cannot be deleted':'Стандартный шаблон удалить нельзя','The selected file is not JSON':'Выбранный файл не является JSON',
 	'sing-box is not installed at /usr/bin/sing-box':'sing-box не установлен в /usr/bin/sing-box',
 	'The UI never updates configs in the background. A file changes only after Save, Create config, Import, Delete, or Apply.':'UI никогда не обновляет конфиги в фоне. Файл изменяется только после команд Сохранить, Создать, Загрузить, Удалить или Применить.',
-	'Nothing to show yet':'Пока нечего показывать','Apply the config again to activate the changes':'Примените конфиг ещё раз, чтобы изменения вступили в силу','Updated':'Обновлено','Config editor':'Редактор конфига','New configuration':'Новая конфигурация'
+	'Nothing to show yet':'Пока нечего показывать','Apply the config again to activate the changes':'Примените конфиг ещё раз, чтобы изменения вступили в силу','Updated':'Обновлено','Config editor':'Редактор конфига','New configuration':'Новая конфигурация',
+	'Initial setup is not finished':'Первоначальная настройка не завершена','sing-box is not installed':'sing-box не установлен',
+	'config.json is empty':'config.json пустой','the sing-box service is not enabled':'сервис sing-box не включён',
+	'To set up the core, service, TUN and auto-update, run over SSH:':'Чтобы настроить ядро, сервис, TUN и автообновление, выполните по SSH:'
 };
 
 const LANG=String(document.documentElement.lang||navigator.language||'').toLowerCase().startsWith('ru')?'ru':'en';
@@ -233,6 +236,7 @@ const STYLE='<style>'+
 '.sbox-card{background:var(--background-color-high,#fff);border:1px solid var(--border-color-medium,#d9dfe7);border-radius:10px;padding:16px;margin-bottom:14px}.sbox-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}.sbox-toolbar .hint{margin-right:auto;color:var(--text-color-medium,#667085)}.sbox-list{display:flex;flex-direction:column;gap:9px}'+
 '.sbox-row{display:grid;grid-template-columns:minmax(170px,1fr) 80px 145px repeat(4,auto);gap:9px;align-items:center;padding:12px;border:1px solid var(--border-color-medium,#e0e5ec);border-radius:8px;background:rgba(127,127,127,.08);color:var(--text-color-high,inherit)}.sbox-row.main{border-color:var(--primary-color-high,#1976d2);box-shadow:0 0 0 1px var(--primary-color-high,#1976d2);background:rgba(25,118,210,.08)}.sbox-name{font-weight:600;overflow-wrap:anywhere}.sbox-badge{font-size:11px;padding:2px 7px;border-radius:99px;background:var(--primary-color-low,#dcecff);color:var(--primary-color-high,#145da0);margin-left:7px}.muted{color:var(--text-color-medium,#667085);font-size:12px}'+
 '.sbox-code-editor{position:relative;overflow:hidden;min-height:470px;border:1px solid var(--border-color-medium,#cfd6df);border-radius:7px;background:#111820}.sbox-editor,.sbox-highlight{box-sizing:border-box;width:100%;min-height:470px;margin:0;padding:13px;border:0;border-radius:7px;font:13px/1.55 ui-monospace,Consolas,monospace;tab-size:2;white-space:pre}.sbox-editor{position:relative;display:block;resize:vertical;background:#111820;color:#e8edf2;overflow:auto;outline:none}.sbox-highlight{position:absolute;top:0;left:0;min-width:100%;width:max-content;pointer-events:none;color:#d8dee9;background:transparent}.sbox-code-editor.enhanced .sbox-editor{background:transparent;color:transparent;-webkit-text-fill-color:transparent;caret-color:#fff}.json-key{color:#7dcfff}.json-string{color:#a6e3a1}.json-number{color:#fab387}.json-literal{color:#cba6f7}.json-punctuation{color:#bac2de}'+
+'.sbox-setup{margin:10px 0;border-left:3px solid #e8a33d}.sbox-setup code{user-select:all}'+
 '.sbox-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:12px;flex-wrap:wrap}.sbox-form{display:grid;grid-template-columns:minmax(240px,1fr) minmax(170px,240px) minmax(150px,220px) auto;gap:10px;align-items:end}.sbox-field label{display:block;font-weight:600;margin-bottom:5px}.sbox-input{box-sizing:border-box;width:100%;padding:9px;border:1px solid var(--border-color-medium,#cfd6df);border-radius:6px;background:rgba(127,127,127,.08);color:var(--text-color-high,inherit)}.sbox-select{box-sizing:border-box;min-width:180px;max-width:100%;padding:8px;border:1px solid var(--border-color-medium,#cfd6df);border-radius:6px;background:var(--background-color-high,#fff);color:var(--text-color-high,inherit)}.sbox-note{padding:10px 12px;border-radius:7px;background:rgba(127,127,127,.08);color:var(--text-color-medium,#52606d);margin:10px 0}.sbox-log{white-space:pre-wrap;overflow:auto;max-height:580px;min-height:260px;background:#111820;color:#dce4ec;border-radius:7px;padding:13px;font:12px/1.5 ui-monospace,monospace}'+
 '@media(max-width:950px){.sbox-row{grid-template-columns:minmax(130px,1fr) repeat(4,auto)}.sbox-row .meta{display:none}.sbox-form{grid-template-columns:1fr 1fr}.sbox-form>button{width:100%}}@media(max-width:650px){.sbox-app{width:100%}.sbox-head h2{flex:1 0 100%;font-size:24px}.sbox-version,.sbox-binary-version,.sbox-status{font-size:11px;padding:5px 7px}.sbox-head>button{flex:1 1 30%;min-width:0;padding-left:5px;padding-right:5px;font-size:12px}.sbox-card{padding:10px}.sbox-tabs{gap:0}.sbox-tab{padding:9px 11px;white-space:nowrap}.sbox-toolbar{align-items:stretch}.sbox-toolbar .hint{flex:1 0 100%;margin-right:0}.sbox-toolbar button,.sbox-toolbar select{flex:1 1 auto}.sbox-row{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:9px}.sbox-name{grid-column:1/-1}.sbox-row button{width:100%;min-width:0;padding-left:4px;padding-right:4px;font-size:11px}.sbox-form{grid-template-columns:1fr}.sbox-code-editor,.sbox-editor,.sbox-highlight{min-height:390px}.sbox-log{padding:9px;font-size:11px}}</style>';
 
@@ -242,6 +246,7 @@ function html(){
 	return STYLE+
 	'<div class="sbox-head"><h2>'+h(_('Configuration manager'))+'</h2><span class="sbox-version">UI '+UI_VERSION+'</span><span id="singboxVersion" class="sbox-binary-version">sing-box …</span><span id="status" class="sbox-status"><span class="sbox-dot"></span><span>…</span></span>'+
 	['start','restart','stop'].map(action=>'<button class="cbi-button cbi-button-'+(action==='stop'?'negative':action==='restart'?'apply':'positive')+'" data-service="'+action+'">'+h(_(action[0].toUpperCase()+action.slice(1)))+'</button>').join('')+'</div>'+
+	'<div id="setupBanner" class="sbox-note sbox-setup" hidden></div>'+
 	'<div class="sbox-tabs">'+[['configs','Configs'],['generator','Generator'],['template','Templates'],['logs','Logs']].map((item,index)=>'<button class="sbox-tab '+(index?'':'active')+'" data-tab="'+item[0]+'">'+h(_(item[1]))+'</button>').join('')+'</div>'+
 	'<section class="sbox-panel active" data-panel="configs"><div id="listView" class="sbox-card"><div class="sbox-toolbar"><span class="hint">'+h(_('The UI never updates configs in the background. A file changes only after Save, Create config, Import, Delete, or Apply.'))+'</span><input id="importFile" type="file" accept=".json,application/json" hidden><button id="import" class="cbi-button">'+h(_('Import config'))+'</button><button id="new" class="cbi-button cbi-button-positive">'+h(_('New config'))+'</button><button id="refresh" class="cbi-button">'+h(_('Refresh'))+'</button></div><div id="list" class="sbox-list"></div></div>'+
 	'<div id="editView" class="sbox-card" style="display:none"><div class="sbox-toolbar"><button id="back" class="cbi-button">← '+h(_('Back to list'))+'</button><strong id="editTitle"></strong></div>'+jsonEditorHtml('editor')+'<div class="sbox-actions"><button id="format" class="cbi-button">'+h(_('Format JSON'))+'</button><button id="save" class="cbi-button cbi-button-positive">'+h(_('Save'))+'</button></div></div></section>'+
@@ -271,6 +276,21 @@ function init(root,initialConfigs,initialTemplates,initialTemplateName,initialTe
 	templateHighlight();
 
 	async function status(){const element=root.querySelector('#status'),on=await running();element.classList.toggle('running',on);element.lastElementChild.textContent=on?_('Running'):_('Stopped')}
+	// Плашка первоначальной настройки / Initial setup banner
+	async function setupBanner(){
+		const reasons=[];
+		if(!await hasBin())reasons.push(_('sing-box is not installed'));
+		else{
+			const text=await read(ACTIVE,'').catch(()=>null);
+			if(text!=null&&!text.replace(/\s+/g,'').replace(/^\{\}$/,''))reasons.push(_('config.json is empty'));
+			const enabled=await fs.exec(SERVICE,['enabled']).then(result=>(result.code|0)===0,()=>true);
+			if(!enabled)reasons.push(_('the sing-box service is not enabled'));
+		}
+		const element=root.querySelector('#setupBanner');
+		if(!reasons.length){element.hidden=true;return}
+		element.innerHTML='<strong>'+h(_('Initial setup is not finished'))+'</strong>: '+h(reasons.join(', '))+'. '+h(_('To set up the core, service, TUN and auto-update, run over SSH:'))+' <code>singbox-ui-setup</code>';
+		element.hidden=false;
+	}
 	async function binaryVersion(){const element=root.querySelector('#singboxVersion');try{const result=await fs.exec(BIN,['version']);if((result.code|0)!==0&&!result.stdout)throw new Error('missing');const text=cleanError(result.stdout||result.stderr),line=text.split(/\r?\n/).map(s=>s.trim()).find(Boolean)||'',match=line.match(/(?:^|\s)(?:sing-box(?:-extended)?\s+version\s+v?([0-9][\w.+-]*|unknown)|sing-box(?:-extended)?\s+v?([0-9][\w.+-]*)|version\s+v?([0-9][\w.+-]*|unknown))/i),v=match&&(match[1]||match[2]||match[3]);element.textContent=v?'sing-box '+v:'sing-box —'}catch(_e){element.textContent='sing-box —'}}
 
 	function renderConfigs(){
@@ -470,7 +490,7 @@ function init(root,initialConfigs,initialTemplates,initialTemplateName,initialTe
 	root.querySelector('#clearLog').onclick=event=>busy(event.currentTarget,async()=>{try{await clearLogs()}catch(error){note('error',_('Operation failed')+': '+cleanError(error.message))}});
 	root.querySelector('#refreshLog').onclick=event=>busy(event.currentTarget,logs);
 
-	renderConfigs();renderTemplateOptions();status();binaryVersion();logState();
+	renderConfigs();renderTemplateOptions();status();binaryVersion();logState();setupBanner();
 }
 
 return view.extend({

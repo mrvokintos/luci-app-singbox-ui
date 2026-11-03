@@ -1,6 +1,7 @@
 #!/bin/sh
 # Package manager abstraction for OpenWrt: opkg (23.05, 24.10) vs apk (25.x).
 # Source this after ui.sh. Sets PKG_IS_APK (0|1) and PKG_EXT (ipk|apk).
+# PKG_IS_APK=1|0 can be preset (tests) to skip detection.
 
 detect_pkg_manager() {
     PKG_IS_APK=0
@@ -17,8 +18,34 @@ detect_pkg_manager() {
         return 1
     fi
 
-    # Показать режим наглядно (show_message из ui.sh, подключается до pkg.sh)
-    [ -n "$PKG_MODE_LABEL" ] && show_message "Package manager: $PKG_MODE_LABEL" 2>/dev/null || true
+    return 0
+}
+
+# Архитектура пакетов OpenWrt (aarch64_cortex-a53, ...) / OpenWrt package architecture
+detect_openwrt_arch() {
+    local arch=""
+    if [ -r "$SBUI_ROOT/etc/openwrt_release" ]; then
+        arch=$(. "$SBUI_ROOT/etc/openwrt_release"; printf '%s' "${DISTRIB_ARCH:-}")
+    fi
+    if [ -z "$arch" ] && [ -r "$SBUI_ROOT/etc/apk/arch" ]; then
+        arch=$(sed -n '1p' "$SBUI_ROOT/etc/apk/arch")
+    fi
+    if [ -z "$arch" ] && command -v opkg >/dev/null 2>&1; then
+        arch=$(opkg print-architecture 2>/dev/null | awk 'END { print $2 }')
+    fi
+    case "$arch" in
+        ''|*[!A-Za-z0-9._+-]*) return 1 ;;
+    esac
+    printf '%s\n' "$arch"
+}
+
+# Установленная версия пакета или пусто / Installed package version or empty
+pkg_version() {
+    if [ "$PKG_IS_APK" -eq 1 ]; then
+        apk info -e -v "$1" 2>/dev/null | sed -n "s/^$1-//p" | head -n 1
+    else
+        opkg list-installed 2>/dev/null | awk -v p="$1" '$1 == p { print $3; exit }'
+    fi
 }
 
 pkg_is_installed() {

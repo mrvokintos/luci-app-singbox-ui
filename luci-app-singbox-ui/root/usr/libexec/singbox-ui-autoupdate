@@ -1,0 +1,113 @@
+#!/bin/sh
+# Задача cron: обновить панель и, в режиме all, ядро из репозитория.
+# Cron job: upgrade the panel and, in "all" mode, the core from the repo.
+# Usage: singbox-ui-autoupdate ui|all
+#
+# Ядро обновляется, только если оно поставлено из репозитория (core-source = repo)
+# и новый бинарник принимает текущий config.json. Иначе ядро не трогается.
+# The core is upgraded only when it came from the repo (core-source = repo) and
+# the new binary accepts the current config.json; otherwise it is left alone.
+
+MODE="${1:-ui}"
+SETUP_LIB="${SETUP_LIB:-/usr/share/singbox-ui/setup}"
+CONFIG="/etc/sing-box/config.json"
+WORK="/tmp/singbox-ui-autoupdate"
+LOCK="/tmp/singbox-ui-autoupdate.lock"
+
+log() {
+    logger -t singbox-ui-autoupdate "$*"
+    [ -t 1 ] && echo "$*"
+}
+
+case "$MODE" in ui|all) ;; *) echo "Usage: $0 ui|all" >&2; exit 2 ;; esac
+
+mkdir "$LOCK" 2>/dev/null || { log "already running"; exit 0; }
+trap 'rm -rf "$LOCK" "$WORK"' EXIT INT TERM HUP
+
+# show_* нужны pkg.sh для сообщений о повторах / pkg.sh prints retries via show_*
+show_message() { log "$*"; }
+. "$SETUP_LIB/pkg.sh"
+detect_pkg_manager || { log "no package manager"; exit 1; }
+PKG_UPDATE_RETRIES=3
+PKG_INSTALL_RETRIES=2
+
+pkg_upgradable() {
+    if [ "$PKG_IS_APK" -eq 1 ]; then
+        apk list -u "$1" 2>/dev/null | grep -q "^$1-"
+    else
+        opkg list-upgradable 2>/dev/null | grep -q "^$1 "
+    fi
+}
+
+pkg_upgrade() {
+    if [ "$PKG_IS_APK" -eq 1 ]; then
+        apk upgrade "$1"
+    else
+        opkg upgrade "$1"
+    fi
+}
+
+# Скачать пакет ядра и достать из него бинарник / Fetch the core package, extract the binary
+fetch_core_binary() {
+    local pkg="$1" file
+    rm -rf "$WORK"
+    mkdir -p "$WORK/root" || return 1
+    if [ "$PKG_IS_APK" -eq 1 ]; then
+        apk fetch -o "$WORK" "$pkg" >/dev/null 2>&1 || return 1
+        file=$(ls "$WORK"/*.apk 2>/dev/null | head -n 1)
+        [ -n "$file" ] || return 1
+        apk extract --no-chown --destination "$WORK/root" "$file" >/dev/null 2>&1 || return 1
+    else
+        (cd "$WORK" && opkg download "$pkg" >/dev/null 2>&1) || return 1
+        file=$(ls "$WORK"/*.ipk 2>/dev/null | head -n 1)
+        [ -n "$file" ] || return 1
+        (cd "$WORK" && tar -xzf "$file" ./data.tar.gz 2>/dev/null || tar -xzf "$file" data.tar.gz) || return 1
+        tar -xzf "$WORK/data.tar.gz" -C "$WORK/root" ./usr/bin/sing-box 2>/dev/null ||
+            tar -xzf "$WORK/data.tar.gz" -C "$WORK/root" usr/bin/sing-box || return 1
+    fi
+    [ -x "$WORK/root/usr/bin/sing-box" ]
+}
+
+pkg_list_update >/dev/null 2>&1 || { log "package list update failed"; exit 1; }
+
+# Панель / Panel
+if pkg_upgradable luci-app-singbox-ui; then
+    before=$(pkg_version luci-app-singbox-ui)
+    if pkg_upgrade luci-app-singbox-ui >/dev/null 2>&1; then
+        log "luci-app-singbox-ui: $before -> $(pkg_version luci-app-singbox-ui)"
+    else
+        log "luci-app-singbox-ui: upgrade failed"
+    fi
+fi
+
+[ "$MODE" = all ] || exit 0
+
+# Ядро / Core
+if [ "$(cat /etc/singbox-ui/core-source 2>/dev/null)" != repo ]; then
+    log "core is not from the repo, skipped"
+    exit 0
+fi
+core=sing-box
+pkg_is_installed sing-box-extended && core=sing-box-extended
+pkg_is_installed "$core" || { log "core is not installed, skipped"; exit 0; }
+pkg_upgradable "$core" || exit 0
+
+if ! fetch_core_binary "$core"; then
+    log "$core: cannot fetch the new package, skipped"
+    exit 1
+fi
+if [ -s "$CONFIG" ] && ! out=$("$WORK/root/usr/bin/sing-box" check -c "$CONFIG" 2>&1); then
+    log "$core: new version rejects $CONFIG, upgrade skipped: $(printf '%s' "$out" | tail -n 1)"
+    exit 1
+fi
+
+before=$(pkg_version "$core")
+was_running=0
+/etc/init.d/sing-box running >/dev/null 2>&1 && was_running=1
+if pkg_upgrade "$core" >/dev/null 2>&1; then
+    log "$core: $before -> $(pkg_version "$core")"
+    [ "$was_running" = 1 ] && /etc/init.d/sing-box restart >/dev/null 2>&1
+else
+    log "$core: upgrade failed"
+    exit 1
+fi

@@ -1,0 +1,592 @@
+#!/bin/sh
+# singbox-ui-setup — настройка роутера под sing-box и singbox-ui.
+# singbox-ui-setup — router setup for sing-box and singbox-ui.
+#
+# Usage: singbox-ui-setup [--yes] [--uninstall] [--plain] [--dry-run]
+#   без флагов   полноэкранное меню (или вопросы по очереди без терминала)
+#   --yes        применить без вопросов / apply without questions
+#   --uninstall  удалить всё (с --yes — без вопросов) / remove everything
+#   --plain      вопросы по очереди вместо полноэкранного меню
+#   --dry-run    только показать команды / print commands only
+#
+# Переменные / environment: SBUI_LANG=ru|en, CORE=keep|original|extended|clean|
+#   clean-extended, CHANNEL=stable|beta|git|dev, AUTOUPDATE=off|ui|all,
+#   IPV6=disable|keep. Старые переменные установщика тоже понимаются:
+#   LANG=1|2, SINGBOX_INSTALL_MODE=1|2|3, OPERATION=1|2|3, BRANCH=dev,
+#   IPV6_CHOICE=1|2.
+
+SETUP_LIB="${SETUP_LIB:-/usr/share/singbox-ui/setup}"
+for module in ui pkg repo core system autoupdate i18n tui; do
+    . "$SETUP_LIB/$module.sh" || { echo "missing $SETUP_LIB/$module.sh" >&2; exit 1; }
+done
+
+ARTIFACTS_URL="https://raw.githubusercontent.com/mrvokintos/luci-app-singbox-ui/artifacts"
+
+usage() {
+    sed -n '2,18s/^# \{0,1\}//p' "$0"
+}
+
+ACTION=menu
+ASSUME_YES=0
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -y|--yes) ASSUME_YES=1 ;;
+        --uninstall) ACTION=uninstall ;;
+        --plain) UI_PLAIN=1 ;;
+        --dry-run) SETUP_DRY_RUN=1 ;;
+        -h|--help) usage; exit 0 ;;
+        *) usage >&2; exit 2 ;;
+    esac
+    shift
+done
+
+# ── Состояние / State ───────────────────────────────────────────────────────
+
+detect_pkg_manager || exit 1
+ARCH=$(detect_openwrt_arch) || ARCH=unknown
+OPENWRT=$( . /etc/openwrt_release 2>/dev/null; printf '%s' "${DISTRIB_RELEASE:-?}")
+
+saved() { uci -q get "singbox-ui.setup.$1" 2>/dev/null; }
+
+# Язык / Language
+S_LANG="${SBUI_LANG:-}"
+[ -n "$S_LANG" ] || case "${LANG:-}" in 1) S_LANG=ru ;; 2) S_LANG=en ;; esac
+[ -n "$S_LANG" ] || S_LANG=$(saved lang)
+case "$S_LANG" in ru|en) ;; *) S_LANG=ru ;; esac
+
+# Старые переменные установщика / Legacy installer variables
+case "${SINGBOX_INSTALL_MODE:-}" in
+    1) CORE="${CORE:-original}" ;;
+    2) CORE="${CORE:-extended}" ;;
+    3) CORE="${CORE:-clean}" ;;
+esac
+[ "${OPERATION:-}" = 2 ] && ACTION=uninstall
+[ "${BRANCH:-}" = dev ] && CHANNEL="${CHANNEL:-dev}"
+case "${IPV6_CHOICE:-}" in 1) IPV6="${IPV6:-disable}" ;; 2) IPV6="${IPV6:-keep}" ;; esac
+
+CORE_KIND=$(core_installed_kind)
+S_CORE="${CORE:-}"
+if ! core_kind_valid "$S_CORE"; then
+    if [ -n "$CORE_KIND" ]; then S_CORE=keep; else S_CORE=original; fi
+fi
+
+REPO_CHANNEL=$(repo_current_channel)
+S_CHANNEL="${CHANNEL:-}"
+repo_channel_valid "$S_CHANNEL" || S_CHANNEL="$REPO_CHANNEL"
+repo_channel_valid "$S_CHANNEL" || S_CHANNEL=$(saved channel)
+repo_channel_valid "$S_CHANNEL" || S_CHANNEL=stable
+
+S_AUTOUPDATE="${AUTOUPDATE:-}"
+if ! autoupdate_mode_valid "$S_AUTOUPDATE"; then
+    if [ -n "$REPO_CHANNEL" ]; then S_AUTOUPDATE=$(autoupdate_current); else S_AUTOUPDATE=ui; fi
+fi
+
+S_IPV6="${IPV6:-}"
+case "$S_IPV6" in disable|keep) ;; *) S_IPV6=$(saved ipv6) ;; esac
+case "$S_IPV6" in disable|keep) ;; *) S_IPV6=disable ;; esac
+
+S_CONFIG=keep
+
+i18n_load "$S_LANG"
+
+# ── Подписи значений / Value labels ─────────────────────────────────────────
+
+core_kind_label() {
+    case "$1" in
+        original) echo "$V_CORE_ORIGINAL" ;;
+        extended) echo "$V_CORE_EXTENDED" ;;
+        clean) echo "$V_CORE_CLEAN" ;;
+        clean-extended) echo "$V_CORE_CLEAN_EXTENDED" ;;
+        feed) echo "sing-box ($V_CORE_FEED)" ;;
+        *) echo "$V_CORE_NONE" ;;
+    esac
+}
+
+core_kind_short() {
+    case "$1" in
+        original) echo Original ;;
+        extended) echo Extended ;;
+        clean) echo Clean ;;
+        clean-extended) echo "Clean Extended" ;;
+        feed) echo "sing-box ($V_CORE_FEED)" ;;
+    esac
+}
+
+core_kind_where() {
+    case "$1" in
+        clean|clean-extended)
+            if repo_arch_has_core "$ARCH"; then echo "$V_FROM_REPO"; else echo "$V_FROM_GITHUB"; fi ;;
+        original|extended) echo "$V_FROM_GITHUB" ;;
+    esac
+}
+
+v_lang() { [ "$S_LANG" = ru ] && echo "$V_LANG_RU" || echo "$V_LANG_EN"; }
+
+v_core() {
+    local version
+    if [ "$S_CORE" = keep ]; then
+        version=$(core_version)
+        if [ -n "$CORE_KIND" ]; then
+            echo "$V_CORE_KEEP: $(core_kind_short "$CORE_KIND") ${version:-}"
+        else
+            echo "$V_CORE_NONE"
+        fi
+    else
+        echo "$(core_kind_short "$S_CORE") ($(core_kind_where "$S_CORE"))"
+    fi
+}
+
+v_channel() {
+    case "$S_CHANNEL" in
+        stable) echo "$V_CHANNEL_STABLE" ;;
+        beta) echo "$V_CHANNEL_BETA" ;;
+        git) echo "$V_CHANNEL_GIT" ;;
+        dev) echo "$V_CHANNEL_DEV" ;;
+    esac
+}
+
+v_autoupdate() {
+    case "$1" in
+        off) echo "$V_AU_OFF" ;;
+        ui) echo "$V_AU_UI" ;;
+        all) echo "$V_AU_ALL" ;;
+    esac
+}
+
+v_ipv6() { [ "$S_IPV6" = disable ] && echo "$V_IPV6_DISABLE" || echo "$V_IPV6_KEEP"; }
+
+v_config() {
+    if [ "$S_CONFIG" = edit ]; then
+        echo "$V_CONFIG_EDIT"
+    elif config_is_empty; then
+        echo "$V_CONFIG_KEEP ($V_CONFIG_EMPTY)"
+    else
+        echo "$V_CONFIG_KEEP"
+    fi
+}
+
+# Ядро после применения / Core kind after applying
+target_core_kind() {
+    if [ "$S_CORE" = keep ]; then echo "$CORE_KIND"; else echo "$S_CORE"; fi
+}
+
+target_uses_core_feed() {
+    core_kind_uses_repo "$(target_core_kind)" "$ARCH"
+}
+
+# ── План / Plan ─────────────────────────────────────────────────────────────
+
+# Строки сводки, по одной на строку / Summary lines, one per line
+plan_lines() {
+    printf "$SUM_REPO\n" "$S_CHANNEL"
+    target_uses_core_feed && printf "$SUM_REPO_CORE\n" "$ARCH"
+    [ "$S_CORE" != keep ] && printf "$SUM_CORE\n" "$(core_kind_label "$S_CORE") ($(core_kind_where "$S_CORE"))"
+    echo "$SUM_SERVICE"
+    tun_configured || echo "$SUM_TUN"
+    { [ -f /etc/sing-box/tproxy.nft ] || uci -q get firewall.singbox_tproxy >/dev/null 2>&1; } && echo "$SUM_TPROXY"
+    [ "$S_IPV6" = disable ] && ! ipv6_disabled && echo "$SUM_IPV6"
+    printf "$SUM_AU\n" "$(v_autoupdate "$S_AUTOUPDATE")"
+    [ "$S_CONFIG" = edit ] && echo "$SUM_EDIT"
+    if [ "$S_CONFIG" = edit ] || ! config_is_empty; then
+        echo "$SUM_START"
+    else
+        echo "$SUM_NOSTART"
+    fi
+    printf "$SUM_PANEL\n" "$S_CHANNEL"
+}
+
+uninstall_lines() {
+    [ -n "$CORE_KIND" ] && printf "$SUM_U_CORE\n" "$(core_kind_short "$CORE_KIND") $(core_version)"
+    tun_configured && echo "$SUM_U_TUN"
+    ipv6_disabled && echo "$SUM_U_IPV6"
+    echo "$SUM_U_AU"
+    echo "$SUM_U_PANEL"
+    echo "$SUM_U_KEEP"
+}
+
+# ── Применение / Apply ──────────────────────────────────────────────────────
+
+lan_address() {
+    uci -q get network.lan.ipaddr 2>/dev/null | cut -d/ -f1
+}
+
+apply_settings() {
+    local with_core=0 failed=0
+    separator "$T_TITLE"
+
+    tproxy_cleanup
+
+    target_uses_core_feed && with_core=1
+    show_progress "$(printf "$MSG_REPO_ENABLE" "$S_CHANNEL")"
+    if ! repo_enable "$S_CHANNEL" "$ARCH" "$with_core"; then
+        show_error "$MSG_REPO_FAILED"
+        [ "$with_core" = 1 ] && [ "$S_CORE" != keep ] && return 1
+    fi
+    show_progress "$MSG_PKG_UPDATE"
+    if [ -z "${SETUP_DRY_RUN:-}" ] && ! pkg_list_update >/dev/null; then
+        show_error "$MSG_PKG_UPDATE_FAILED"
+        return 1
+    fi
+
+    if [ "$S_CORE" != keep ]; then
+        configs_backup
+        if ! core_install "$S_CORE" "$ARCH"; then
+            configs_restore
+            show_error "$MSG_CORE_FAILED"
+            return 1
+        fi
+        configs_restore
+        CORE_KIND=$(core_installed_kind)
+        [ -n "${SETUP_DRY_RUN:-}" ] && CORE_KIND="$S_CORE"
+    fi
+
+    if [ -z "$CORE_KIND" ]; then
+        show_warning "$MSG_CORE_MISSING"
+    else
+        service_configure
+        config_ensure
+    fi
+    tun_enable || failed=1
+    [ "$S_IPV6" = disable ] && { ipv6_disable || failed=1; }
+
+    show_progress "$(printf "$MSG_AU_SET" "$(v_autoupdate "$S_AUTOUPDATE")")"
+    autoupdate_set "$S_AUTOUPDATE" || failed=1
+    [ "$S_CONFIG" = edit ] && config_edit
+    setup_save
+
+    if [ -n "$CORE_KIND" ]; then
+        if config_is_empty && [ -z "${SETUP_DRY_RUN:-}" ]; then
+            show_warning "$MSG_EMPTY_CONFIG"
+        else
+            service_start || failed=1
+            network_check || failed=1
+        fi
+    fi
+
+    # Панель последней: пакет заменяет и этот скрипт / The panel goes last: it replaces this script
+    show_progress "$(printf "$MSG_PANEL_UPGRADE" "$S_CHANNEL")"
+    if [ -n "$REPO_CHANNEL" ] && [ "$S_CHANNEL" != "$REPO_CHANNEL" ] && [ "$PKG_IS_APK" -eq 1 ]; then
+        # Канал сменили: --available разрешает откат на версию нового канала.
+        # При первом подключении репозитория панель только обновляется, без отката.
+        # Channel changed: --available allows going back to the new channel's
+        # version. On the first setup the panel is only upgraded, never downgraded.
+        run apk upgrade --available luci-app-singbox-ui || failed=1
+    elif [ "$PKG_IS_APK" -eq 1 ]; then
+        run apk upgrade luci-app-singbox-ui || failed=1
+    else
+        run opkg upgrade luci-app-singbox-ui || failed=1
+    fi
+
+    [ "$failed" = 0 ] && show_success "$MSG_DONE" || show_warning "$MSG_FAILED"
+    show_message "$(printf "$MSG_PANEL_HINT" "$(lan_address)")"
+    return "$failed"
+}
+
+uninstall_all() {
+    separator "$A_UNINSTALL"
+    service_stop
+    core_uninstall
+    tun_disable
+    tproxy_cleanup
+    ipv6_restore
+    autoupdate_set off
+    repo_disable
+    run rm -f /etc/config/singbox-ui /etc/singbox-ui/core-source
+    run pkg_remove luci-app-singbox-ui
+    network_check
+    show_success "$MSG_UNINSTALL_DONE"
+}
+
+# ── Сборка из артефактов / Artifact build ───────────────────────────────────
+
+# artifact_list BRANCH -> имена файлов / file names
+artifact_list() {
+    fetch_text "$ARTIFACTS_URL/$1/$PKG_EXT/index.txt" 2>/dev/null |
+        grep -E '^[A-Za-z0-9._+-]+$'
+}
+
+artifact_install() {
+    local branch="$1" file="$2" path="/tmp/luci-app-singbox-ui.$PKG_EXT"
+    show_progress "$(printf "$MSG_ARTIFACT_INSTALL" "$file")"
+    if [ -n "${SETUP_DRY_RUN:-}" ]; then
+        echo "[dry-run] install $ARTIFACTS_URL/$branch/$PKG_EXT/$file"
+        return 0
+    fi
+    if download_file "$ARTIFACTS_URL/$branch/$PKG_EXT/$file" "$path" && pkg_install_file "$path"; then
+        rm -f "$path"
+        show_success "$MSG_ARTIFACT_OK"
+        return 0
+    fi
+    rm -f "$path"
+    show_error "$MSG_ARTIFACT_FAIL"
+    return 1
+}
+
+# ── Полноэкранный режим / Full-screen mode ──────────────────────────────────
+
+tui_set_header() {
+    local core
+    core=$(core_version)
+    TUI_TITLE="$T_TITLE · luci-app-singbox-ui $(pkg_version luci-app-singbox-ui)"
+    TUI_SUBTITLE="OpenWrt $OPENWRT · $ARCH · $PKG_EXT · sing-box ${core:-—}"
+    TUI_HINT="$T_HINT_MAIN"
+    TUI_HINT_SUB="$T_HINT_SUB"
+    TUI_HEADING=""
+}
+
+pause() {
+    printf '\n%s ' "$MSG_PRESS_ENTER"
+    read -r _
+}
+
+tui_pick_core() {
+    local cur=1 r kinds item label where
+    set --
+    kinds=""
+    if [ -n "$CORE_KIND" ]; then
+        set -- "$V_CORE_KEEP: $(core_kind_label "$CORE_KIND") $(core_version)"
+        kinds="keep"
+    fi
+    for item in original extended clean clean-extended; do
+        label=$(core_kind_label "$item")
+        where=$(core_kind_where "$item")
+        set -- "$@" "$label ($where)"
+        kinds="$kinds $item"
+    done
+    r=1
+    for item in $kinds; do
+        [ "$item" = "$S_CORE" ] && cur=$r
+        r=$((r + 1))
+    done
+    r=$cur
+    tui_choose r "$L_CORE" "$cur" "$@"
+    S_CORE=$(echo $kinds | cut -d' ' -f"$r")
+}
+
+tui_pick_artifact() {
+    local b=2 i branch files file
+    tui_choose b "$MSG_ARTIFACT_BRANCH" 2 "main" "dev"
+    [ "$b" = 1 ] && branch=main || branch=dev
+    TUI_HEADING="$MSG_ARTIFACT_LOADING"
+    _tui_draw 0 1 1 1 "#…"
+    files=$(artifact_list "$branch")
+    if [ -z "$files" ]; then
+        tui_leave
+        show_error "$MSG_ARTIFACT_INDEX_FAIL"
+        pause
+        tui_enter
+        return 0
+    fi
+    # Новые сборки сверху / Newest builds first
+    files=$(printf '%s\n' "$files" | sort -r)
+    i=0
+    # shellcheck disable=SC2086
+    TUI_HEADING="$MSG_ARTIFACT_PICK ($branch)"
+    TUI_HINT="$T_HINT_SUB"
+    tui_menu i 1 $files
+    tui_set_header
+    [ "$i" -gt 0 ] || return 0
+    file=$(printf '%s\n' $files | sed -n "${i}p")
+    tui_leave
+    artifact_install "$branch" "$file"
+    pause
+    tui_enter
+}
+
+# tui_confirm HEADING LINE... — сводка и подтверждение / summary and confirmation
+tui_confirm() {
+    local heading="$1" r=0 line items=""
+    shift
+    set -- "$@"
+    TUI_HEADING="$heading"
+    TUI_HINT="$T_HINT_SUB"
+    local n=$#
+    tui_menu r $((n + 2)) "$@" "-" "$SUM_RUN" "$SUM_BACK"
+    tui_set_header
+    [ "$r" = $((n + 2)) ]
+}
+
+lines_to_items() {
+    # Каждую строку сводки превратить в "#строка" / Prefix each summary line with "#"
+    printf '%s\n' "$1" | sed 's/^/#  • /'
+}
+
+run_tui() {
+    local sel=1 r lines IFS_NL
+    IFS_NL='
+'
+    tui_enter
+    trap 'tui_leave' EXIT
+    trap 'tui_leave; exit 130' INT TERM HUP
+    tui_set_header
+    while true; do
+        tui_menu sel "$sel" \
+            "$L_LANG	$(v_lang)" \
+            "$L_CORE	$(v_core)" \
+            "$L_CHANNEL	$(v_channel)" \
+            "$L_AUTOUPDATE	$(v_autoupdate "$S_AUTOUPDATE")" \
+            "$L_IPV6	$(v_ipv6)" \
+            "$L_CONFIG	$(v_config)" \
+            "-" \
+            "$A_APPLY" \
+            "$A_ARTIFACT" \
+            "$A_UNINSTALL" \
+            "$A_QUIT"
+        case "$sel" in
+            0|11) tui_leave; return 0 ;;
+            1)
+                r=1; [ "$S_LANG" = en ] && r=2
+                tui_choose r "$L_LANG" "$r" "$V_LANG_RU" "$V_LANG_EN"
+                [ "$r" = 2 ] && S_LANG=en || S_LANG=ru
+                i18n_load "$S_LANG"
+                tui_set_header
+                ;;
+            2) tui_pick_core ;;
+            3)
+                case "$S_CHANNEL" in stable) r=1 ;; beta) r=2 ;; git) r=3 ;; *) r=4 ;; esac
+                tui_choose r "$L_CHANNEL" "$r" "$V_CHANNEL_STABLE" "$V_CHANNEL_BETA" "$V_CHANNEL_GIT" "$V_CHANNEL_DEV"
+                S_CHANNEL=$(echo stable beta git dev | cut -d' ' -f"$r")
+                ;;
+            4)
+                case "$S_AUTOUPDATE" in off) r=1 ;; ui) r=2 ;; *) r=3 ;; esac
+                tui_choose r "$L_AUTOUPDATE" "$r" "$V_AU_OFF" "$V_AU_UI" "$V_AU_ALL" "-" "#$V_AU_ALL_NOTE"
+                S_AUTOUPDATE=$(echo off ui all | cut -d' ' -f"$r")
+                ;;
+            5)
+                [ "$S_IPV6" = disable ] && r=1 || r=2
+                tui_choose r "$L_IPV6" "$r" "$V_IPV6_DISABLE" "$V_IPV6_KEEP"
+                [ "$r" = 1 ] && S_IPV6=disable || S_IPV6=keep
+                ;;
+            6)
+                [ "$S_CONFIG" = edit ] && r=2 || r=1
+                tui_choose r "$L_CONFIG" "$r" "$V_CONFIG_KEEP" "$V_CONFIG_EDIT"
+                [ "$r" = 2 ] && S_CONFIG=edit || S_CONFIG=keep
+                ;;
+            8)
+                lines=$(plan_lines)
+                set -f
+                local old_ifs="$IFS"
+                IFS="$IFS_NL"
+                # shellcheck disable=SC2046
+                set -- $(lines_to_items "$lines")
+                IFS="$old_ifs"
+                set +f
+                if tui_confirm "$SUM_TITLE" "$@"; then
+                    tui_leave
+                    apply_settings
+                    return $?
+                fi
+                ;;
+            9) tui_pick_artifact ;;
+            10)
+                lines=$(uninstall_lines)
+                set -f
+                local old_ifs="$IFS"
+                IFS="$IFS_NL"
+                # shellcheck disable=SC2046
+                set -- $(lines_to_items "$lines")
+                IFS="$old_ifs"
+                set +f
+                if tui_confirm "$SUM_UNINSTALL_TITLE" "$@"; then
+                    tui_leave
+                    uninstall_all
+                    return $?
+                fi
+                ;;
+        esac
+    done
+}
+
+# ── Вопросы по очереди / Plain questions ────────────────────────────────────
+
+run_plain() {
+    local r
+    separator "$T_PLAIN_TITLE"
+    show_message "OpenWrt $OPENWRT · $ARCH · $PKG_EXT · sing-box $(core_version)"
+    ui_choose r "$MSG_PLAIN_ACTION" 1 "$A_APPLY" "$A_ARTIFACT" "$A_UNINSTALL" "$A_QUIT"
+    case "$r" in
+        2)
+            ui_choose r "$MSG_ARTIFACT_BRANCH" 2 main dev
+            local branch=main files
+            [ "$r" = 2 ] && branch=dev
+            files=$(artifact_list "$branch" | sort -r)
+            [ -n "$files" ] || { show_error "$MSG_ARTIFACT_INDEX_FAIL"; return 1; }
+            # shellcheck disable=SC2086
+            ui_choose r "$MSG_ARTIFACT_PICK" 1 $files
+            artifact_install "$branch" "$(printf '%s\n' $files | sed -n "${r}p")"
+            return $?
+            ;;
+        3)
+            uninstall_lines | while IFS= read -r line; do show_message "$line"; done
+            ui_choose r "$MSG_PLAIN_CONFIRM" 2 "$SUM_RUN" "$SUM_BACK"
+            [ "$r" = 1 ] && uninstall_all
+            return $?
+            ;;
+        4) return 0 ;;
+    esac
+
+    local kinds="original extended clean clean-extended" cur=1 i=1 k
+    if [ -n "$CORE_KIND" ]; then
+        kinds="keep $kinds"
+    fi
+    set --
+    for k in $kinds; do
+        if [ "$k" = keep ]; then
+            set -- "$@" "$V_CORE_KEEP: $(core_kind_label "$CORE_KIND")"
+        else
+            set -- "$@" "$(core_kind_label "$k") ($(core_kind_where "$k"))"
+        fi
+        [ "$k" = "$S_CORE" ] && cur=$i
+        i=$((i + 1))
+    done
+    ui_choose r "$L_CORE" "$cur" "$@"
+    S_CORE=$(echo $kinds | cut -d' ' -f"$r")
+
+    case "$S_CHANNEL" in stable) cur=1 ;; beta) cur=2 ;; git) cur=3 ;; *) cur=4 ;; esac
+    ui_choose r "$L_CHANNEL" "$cur" "$V_CHANNEL_STABLE" "$V_CHANNEL_BETA" "$V_CHANNEL_GIT" "$V_CHANNEL_DEV"
+    S_CHANNEL=$(echo stable beta git dev | cut -d' ' -f"$r")
+
+    case "$S_AUTOUPDATE" in off) cur=1 ;; ui) cur=2 ;; *) cur=3 ;; esac
+    ui_choose r "$L_AUTOUPDATE" "$cur" "$V_AU_OFF" "$V_AU_UI" "$V_AU_ALL ($V_AU_ALL_NOTE)"
+    S_AUTOUPDATE=$(echo off ui all | cut -d' ' -f"$r")
+
+    [ "$S_IPV6" = disable ] && cur=1 || cur=2
+    ui_choose r "$L_IPV6" "$cur" "$V_IPV6_DISABLE" "$V_IPV6_KEEP"
+    [ "$r" = 1 ] && S_IPV6=disable || S_IPV6=keep
+
+    if ui_tty; then
+        ui_choose r "$L_CONFIG" 1 "$V_CONFIG_KEEP" "$V_CONFIG_EDIT"
+        [ "$r" = 2 ] && S_CONFIG=edit || S_CONFIG=keep
+    fi
+
+    show_message "$SUM_TITLE:"
+    plan_lines | while IFS= read -r line; do show_message "  $line"; done
+    ui_choose r "$MSG_PLAIN_CONFIRM" 1 "$SUM_RUN" "$SUM_BACK"
+    [ "$r" = 1 ] || return 0
+    apply_settings
+}
+
+# ── Запуск / Main ───────────────────────────────────────────────────────────
+
+if [ -z "${SETUP_DRY_RUN:-}" ] && [ "$(id -u)" != 0 ]; then
+    show_error "$MSG_NOT_ROOT"
+    exit 1
+fi
+
+if [ "$ASSUME_YES" = 1 ]; then
+    if [ "$ACTION" = uninstall ]; then uninstall_all; else apply_settings; fi
+    exit $?
+fi
+
+if [ "$ACTION" = uninstall ]; then
+    uninstall_lines | while IFS= read -r line; do show_message "$line"; done
+    ui_choose r "$MSG_PLAIN_CONFIRM" 2 "$SUM_RUN" "$SUM_BACK"
+    [ "$r" = 1 ] && uninstall_all
+    exit $?
+fi
+
+if ui_tty; then
+    run_tui
+else
+    run_plain
+fi

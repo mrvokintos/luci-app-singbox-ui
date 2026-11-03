@@ -25,17 +25,18 @@
 | `luci-app-singbox-ui/root/usr/libexec/singbox-ui-helper` | Ограниченные privileged-операции с файлами |
 | `luci-app-singbox-ui/root/etc/singbox-ui/template.json` | Legacy/default-шаблон, conffile OpenWrt |
 | `luci-app-singbox-ui/root/usr/share/rpcd/acl.d/luci-app-singbox-ui.json` | Права LuCI/rpcd |
-| `other/scripts/install-singbox.sh` | Установка, обновление и удаление ядра |
-| `other/scripts/install-singbox-ui.sh` | Установка, обновление и удаление UI |
-| `other/scripts/install-singbox+singbox-ui.sh` | Комбинированный установщик |
-| `other/scripts/lib/ui.sh` | Общие сообщения, ввод и прогресс |
-| `other/scripts/lib/pkg.sh` | APK/IPK, архитектура и операции пакетов |
-| `install.sh` | Bootstrap, скачивающий актуальные скрипты из `$BRANCH` |
+| `luci-app-singbox-ui/root/usr/sbin/singbox-ui-setup` | Настройка роутера: полноэкранное меню, вопросы по очереди, `--yes` |
+| `luci-app-singbox-ui/root/usr/share/singbox-ui/setup/*.sh` | Модули setup: `ui` (вывод, `ui_choose`), `tui` (полноэкранный режим), `pkg` (APK/IPK, архитектура), `repo` (ключи и фиды), `core` (ядро), `system` (сервис, TUN, IPv6, сеть), `autoupdate` (cron), `i18n` |
+| `luci-app-singbox-ui/root/usr/libexec/singbox-ui-autoupdate` | Задача cron: обновление панели и ядра с проверкой config.json |
+| `luci-app-singbox-ui/root/usr/libexec/singbox-ui-mode-switch` | Настройка и удаление TUN, очистка старого TPROXY |
+| `install.sh` | Загрузчик: репозиторий, пакет, запуск `singbox-ui-setup` |
+| `other/scripts/install-singbox*.sh` | Устаревшие обёртки над `install.sh` для старых ссылок |
 | `Dockerfile` | Сборка IPK/APK в официальном OpenWrt SDK (`openwrt/sdk`) |
 | `.github/workflows/build_luci-app-singbox-ui_from_tag.yml` | Ручная сборка и публикация GitHub Release (Release/Pre-release) |
 | `.github/workflows/build_luci-app-singbox-ui_from_pr.yml` | Автосборка артефактов при коммите/PR |
 | `tests/share-link.test.js` | Тесты parser |
 | `tests/helper.test.sh` | Тесты helper и защиты путей |
+| `tests/setup.test.sh` | Тесты модулей setup на фейковом корне (`SBUI_ROOT`), идут и в busybox |
 
 ## Runtime-пути
 
@@ -206,13 +207,16 @@ APK/Alpine принимает RC-суффикс в форме underscore, поэ
 ## Проверки перед commit/tag
 
 ```sh
-sh -n install.sh other/scripts/*.sh other/scripts/lib/*.sh \\
-  luci-app-singbox-ui/root/usr/libexec/singbox-ui-helper
+sh -n install.sh other/scripts/*.sh \\
+  luci-app-singbox-ui/root/usr/sbin/singbox-ui-setup \\
+  luci-app-singbox-ui/root/usr/share/singbox-ui/setup/*.sh \\
+  luci-app-singbox-ui/root/usr/libexec/singbox-ui-*
 node --check luci-app-singbox-ui/htdocs/luci-static/resources/view/singbox-ui/singbox-ui.js
 node --check luci-app-singbox-ui/htdocs/luci-static/resources/singbox-ui/share-link.js
 node tests/share-link.test.js
 node tests/version-parser.test.js
 sh tests/helper.test.sh
+sh tests/setup.test.sh
 jq empty luci-app-singbox-ui/root/usr/share/rpcd/acl.d/luci-app-singbox-ui.json
 jq -e '.route.default_domain_resolver == "local-dns"' \\
   luci-app-singbox-ui/root/etc/singbox-ui/template.json
