@@ -13,7 +13,7 @@
                 "/etc/singbox-ui/templates": ["list"],
                 "/etc/singbox-ui/templates/*": ["read"],
                 "/usr/bin/sing-box": ["read", "exec"],
-                "/tmp/*": ["read"],
+                "/tmp/sbui-check-*": ["read"],
                 "/sbin/logread": ["exec"]
             },
             "uci": []
@@ -23,7 +23,8 @@
                 "/etc/sing-box/*": ["write"],
                 "/etc/singbox-ui/*": ["write"],
                 "/etc/singbox-ui/templates/*": ["write"],
-                "/tmp/*": ["write"],
+                "/tmp/.sbui-*": ["write"],
+                "/tmp/sbui-check-*": ["write"],
                 "/usr/libexec/singbox-ui-helper": ["exec"]
             },
             "uci": []

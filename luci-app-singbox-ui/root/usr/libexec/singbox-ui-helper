@@ -54,19 +54,38 @@ case "${1:-}" in
 	activate|apply)
 		name="${2:-}"
 		valid_name "$name"
-		cp "$config_dir/$name" "$config_dir/config.json"
-		chmod 0644 "$config_dir/config.json"
+		cp "$config_dir/$name" "$config_dir/config.json.sbui-tmp.$$"
+		chmod 0600 "$config_dir/config.json.sbui-tmp.$$"
+		mv -f "$config_dir/config.json.sbui-tmp.$$" "$config_dir/config.json"
 		;;
 	merge)
 		prefix="${2:-}"
 		destination="${3:-}"
 		valid_prefix "$prefix"
 		valid_destination "$destination"
+		found=0
+		for fragment in "$prefix"*; do
+			[ -f "$fragment" ] && found=1
+		done
+		if [ "$found" -ne 1 ]; then
+			echo "No data fragments for $prefix" >&2
+			exit 1
+		fi
+		# Decode into a temp file next to the destination and rename it only on
+		# success, so a broken transfer never truncates the existing file.
+		tmp="$destination.sbui-tmp.$$"
+		trap 'rm -f "$tmp"' EXIT
+		status=0
 		for fragment in "$prefix"*; do
 			[ -f "$fragment" ] && cat "$fragment"
-		done | base64 -d > "$destination"
-		chmod 0644 "$destination"
+		done | base64 -d > "$tmp" || status=$?
 		rm -f "$prefix"*
+		if [ "$status" -ne 0 ] || [ ! -s "$tmp" ]; then
+			echo "Invalid data for $destination" >&2
+			exit 1
+		fi
+		chmod 0600 "$tmp"
+		mv -f "$tmp" "$destination"
 		;;
 	cleanup)
 		prefix="${2:-}"

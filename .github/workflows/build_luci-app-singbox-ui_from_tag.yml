@@ -64,8 +64,10 @@ jobs:
       - name: Set Target Branch
         id: branch
         shell: bash
+        env:
+          TARGET_BRANCH: ${{ inputs.target_branch }}
         run: |
-          echo "target_branch=${{ inputs.target_branch }}" >> "$GITHUB_OUTPUT"
+          echo "target_branch=${TARGET_BRANCH}" >> "$GITHUB_OUTPUT"
 
       - name: Sync Version In Makefile And Push
         id: sync

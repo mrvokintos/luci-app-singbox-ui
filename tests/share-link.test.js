@@ -36,4 +36,13 @@ assert.equal(parseShareLink(cases[0][0]).outbound.tls.utls.fingerprint, 'chrome'
 assert.equal(parseShareLink(ss).outbound.plugin, 'v2ray-plugin');
 assert.equal(parseShareLink(ss).outbound.plugin_opts, 'obfs=web');
 assert.throws(() => parseShareLink('ftp://example.com/file'), /Unsupported/);
+assert.equal(parseShareLink('https://u:p@h.example:443#x').outbound.server_port, 443);
+assert.equal(parseShareLink('https://u:p@h.example#x').outbound.server_port, 443);
+assert.equal(parseShareLink('http://u:p@h.example#x').outbound.server_port, 80);
+const ssCreds = Buffer.from('aes-128-gcm:secret').toString('base64');
+assert.equal(parseShareLink('ss://' + ssCreds + '@ss.example:80#a').outbound.server_port, 80);
+assert.equal(parseShareLink('ss://' + ssCreds + '@ss.example:443#a').outbound.server_port, 443);
+assert.equal(parseShareLink('ss://' + ssCreds + '@[2001:db8::1]:8388#a').outbound.server, '2001:db8::1');
+assert.throws(() => parseShareLink('ss://' + ssCreds + '@ss.example#a'), /Invalid server or port/);
+assert.throws(() => parseShareLink('vmess://' + Buffer.from(JSON.stringify({ add: '', port: 443, id: 'x' })).toString('base64')), /Invalid server or port/);
 console.log('share-link parser: ' + cases.length + ' protocols passed');

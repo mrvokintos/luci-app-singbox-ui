@@ -31,4 +31,23 @@ if sh "$helper" merge "/tmp/.sbui-helper-test-$$-" "$SINGBOX_UI_TEMPLATE_DIR/../
 	exit 1
 fi
 
+before="$(cat "$SINGBOX_UI_CONFIG_DIR/generated.json")"
+printf '%s' '!!! not base64 !!!' > "$fragment"
+if sh "$helper" merge "/tmp/.sbui-helper-test-$$-" "$SINGBOX_UI_CONFIG_DIR/generated.json" 2>/dev/null; then
+	echo 'helper accepted invalid base64' >&2
+	exit 1
+fi
+[ "$(cat "$SINGBOX_UI_CONFIG_DIR/generated.json")" = "$before" ]
+[ ! -e "$fragment" ]
+if ls "$SINGBOX_UI_CONFIG_DIR"/*.sbui-tmp.* >/dev/null 2>&1; then
+	echo 'helper left a temp file behind' >&2
+	exit 1
+fi
+
+if sh "$helper" merge "/tmp/.sbui-helper-test-$$-" "$SINGBOX_UI_CONFIG_DIR/generated.json" 2>/dev/null; then
+	echo 'helper accepted a merge without fragments' >&2
+	exit 1
+fi
+[ "$(cat "$SINGBOX_UI_CONFIG_DIR/generated.json")" = "$before" ]
+
 echo 'singbox-ui helper: passed'

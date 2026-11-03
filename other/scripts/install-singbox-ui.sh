@@ -105,6 +105,7 @@ init_language() {
             MSG_OPTION_3="3) Runner сборка из артефактов (коммиты / PR)"
             MSG_INVALID_CHOICE="Неверный выбор"
             MSG_INSTALL_COMPLETE="Установка завершена"
+            MSG_INSTALL_ERROR="Ошибка установки пакета singbox-ui"
             MSG_CLEANUP_LIB="Очистка библиотек..."
             MSG_CLEANUP="Очистка файлов..."
             MSG_CLEANUP_DONE="Файлы удалены!"
@@ -157,6 +158,7 @@ init_language() {
             MSG_OPTION_2="2) Pre-release (~20 KB, beta, may have bugs)"
             MSG_OPTION_3="3) Runner build from artifacts (commits / PR)"
             MSG_INSTALL_COMPLETE="Installation complete"
+            MSG_INSTALL_ERROR="Failed to install the singbox-ui package"
             MSG_CLEANUP="Cleaning up files..."
             MSG_CLEANUP_DONE="Files removed!"
             MSG_SELECT_RUNNER="Select Runner build to install:"
@@ -298,32 +300,14 @@ choose_install_version() {
             break
             ;;
         2)
-            # Получаем ссылку на последнюю pre-release сборку для ветки (предпочитаем .apk/.ipk по платформе)
-            DOWNLOAD_URL=$(curl -s https://api.github.com/repos/mrvokintos/luci-app-singbox-ui/releases | \
-            awk -v branch="$BRANCH" -v ext="$PKG_EXT" '
-                /"prerelease": true/ { prerelease=1 }
-                /"target_commitish":/ {
-                    tc=$0
-                    gsub(/.*"target_commitish": *"|"[,].*/, "", tc)
-                    if (prerelease && tc != branch) prerelease=0
-                }
-                prerelease && /"browser_download_url":/ && index($0, "luci-app-singbox-ui." ext) {
-                    url=$0
-                    gsub(/.*"browser_download_url": *"|"[,].*/, "", url)
-                    gsub(/"$/, "", url)
-                    print url
-                    exit
-                }
-            ')
-
-            if [ -z "$DOWNLOAD_URL" ]; then
-                # fallback: ищем любой pre-release по расширению / any prerelease by extension
-                DOWNLOAD_URL=$(curl -s https://api.github.com/repos/mrvokintos/luci-app-singbox-ui/releases | \
-                grep -A 20 '"prerelease": true' | \
-                grep "browser_download_url.*luci-app-singbox-ui\.${PKG_EXT}" | \
-                head -n 1 | \
-                sed -E 's/.*"browser_download_url": *"([^"]+)".*/\1/' | \
-                sed -E 's/"$//')
+            # Последняя pre-release сборка с пакетом нужного формата (.apk/.ipk) / Latest pre-release with a matching package
+            DOWNLOAD_URL=""
+            if command -v jq >/dev/null 2>&1; then
+                DOWNLOAD_URL=$(curl -fsSL https://api.github.com/repos/mrvokintos/luci-app-singbox-ui/releases | \
+                    jq -r --arg name "luci-app-singbox-ui.${PKG_EXT}" '
+                        [ .[] | select(.prerelease == true and .draft != true)
+                              | .assets[] | select(.name == $name) | .browser_download_url ]
+                        | first // empty' 2>/dev/null)
             fi
 
             if [ -z "$DOWNLOAD_URL" ]; then
@@ -379,22 +363,33 @@ choose_install_version() {
             fi
 
             local i=1
+            local file
             for file in $runner_files; do
                 show_message "  [$i] $file"
-                eval RUNNER_$i="'$file'"
                 i=$((i+1))
             done
 
+            local selected_runner_file
             while true; do
                 read_input "$MSG_YOUR_CHOICE" CHOICE
-                eval selected_runner_file=\$RUNNER_"$CHOICE"
-
-                if [ -n "$selected_runner_file" ] && [ "$CHOICE" -ge 1 ] && [ "$CHOICE" -le $((i-1)) ] 2>/dev/null; then
-                    DOWNLOAD_URL="$runner_base_url/$selected_runner_file"
-                    break
-                else
-                    show_error "$MSG_INVALID_CHOICE. $MSG_REPEAT_INPUT"
-                fi
+                selected_runner_file=""
+                case "$CHOICE" in
+                    ''|*[!0-9]*) ;;
+                    *)
+                        if [ "$CHOICE" -ge 1 ] && [ "$CHOICE" -lt "$i" ]; then
+                            selected_runner_file=$(printf '%s\n' $runner_files | sed -n "${CHOICE}p")
+                        fi
+                        ;;
+                esac
+                case "$selected_runner_file" in
+                    ''|*[!A-Za-z0-9._+-]*)
+                        show_error "$MSG_INVALID_CHOICE. $MSG_REPEAT_INPUT"
+                        ;;
+                    *)
+                        DOWNLOAD_URL="$runner_base_url/$selected_runner_file"
+                        break
+                        ;;
+                esac
             done
             break
             ;;
@@ -415,9 +410,13 @@ install_singbox_ui() {
         show_error "$MSG_DOWNLOAD_ERROR"
         exit 1
     fi
-    chmod 0755 "$pkg_file"
-    pkg_list_update
-    pkg_install_file "$pkg_file"
+    chmod 0644 "$pkg_file"
+    pkg_list_update || true
+    if ! pkg_install_file "$pkg_file"; then
+        rm -f "$pkg_file"
+        show_error "$MSG_INSTALL_ERROR"
+        exit 1
+    fi
     /etc/init.d/uhttpd restart
     show_success "$MSG_INSTALL_COMPLETE"
 }

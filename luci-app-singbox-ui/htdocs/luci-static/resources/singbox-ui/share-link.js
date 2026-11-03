@@ -154,7 +154,8 @@ function parseTuic(url) {
 
 function parseBasic(url, type) {
 	return clean({
-		type, tag: 'proxy', server: hostname(url), server_port: Number(url.port || (type === 'http' ? 80 : 1080)),
+		type, tag: 'proxy', server: hostname(url),
+		server_port: Number(url.port || (type === 'http' ? (url.protocol === 'https:' ? 443 : 80) : 1080)),
 		username: decode(url.username), password: decode(url.password),
 		tls: type === 'http' && url.protocol === 'https:' ? tlsFrom(url, true) : undefined,
 	});
@@ -183,7 +184,7 @@ function parseShadowsocks(raw) {
 	}
 	const split = credentials.indexOf(':');
 	if (split < 1) throw new Error('Invalid Shadowsocks method');
-	const endpointUrl = new URL('http://' + endpoint.replace(/^\/?/, ''));
+	const endpointUrl = new URL('ss://' + endpoint.replace(/^\/?/, ''));
 	const pluginValue = endpointUrl.searchParams.get('plugin') || '';
 	const pluginParts = pluginValue.split(';');
 	return clean({
@@ -200,14 +201,16 @@ function parseShadowsocks(raw) {
 function parseVmess(raw) {
 	const value = JSON.parse(decodeBase64(raw.replace(/^vmess:\/\//i, '').split('#')[0]));
 	const tlsEnabled = value.tls === 'tls' || value.tls === true;
-	const fake = new URL(`vmess://${value.id}@${value.add}:${value.port || 443}`);
+	const server = String(value.add || '').trim().replace(/^\[|\]$/g, '');
+	if (!server) throw new Error('Invalid server or port');
+	const fake = new URL('vmess://' + (server.includes(':') ? '[' + server + ']' : server));
 	Object.entries({
 		type: value.net, host: value.host, path: value.path, serviceName: value.path,
 		security: tlsEnabled ? 'tls' : '', sni: value.sni, alpn: value.alpn,
 	}).forEach(([key, val]) => { if (val != null && val !== '') fake.searchParams.set(key, val); });
 	return clean({
 		outbound: {
-			type: 'vmess', tag: 'proxy', server: value.add, server_port: Number(value.port || 443),
+			type: 'vmess', tag: 'proxy', server, server_port: Number(value.port || 443),
 			uuid: value.id, security: value.scy || 'auto', alter_id: Number(value.aid || 0),
 			tls: tlsFrom(fake, tlsEnabled), transport: transportFrom(fake),
 		},
@@ -215,11 +218,18 @@ function parseVmess(raw) {
 	});
 }
 
+function validate(result) {
+	const outbound = result.outbound;
+	if (!outbound.server || !Number.isInteger(outbound.server_port) || outbound.server_port < 1 || outbound.server_port > 65535)
+		throw new Error('Invalid server or port');
+	return result;
+}
+
 function parseShareLink(raw) {
 	const value = String(raw || '').trim();
 	if (!value) throw new Error('Link is empty');
-	if (/^vmess:\/\//i.test(value)) return parseVmess(value);
-	if (/^ss:\/\//i.test(value)) return parseShadowsocks(value);
+	if (/^vmess:\/\//i.test(value)) return validate(parseVmess(value));
+	if (/^ss:\/\//i.test(value)) return validate(parseShadowsocks(value));
 
 	const url = new URL(value);
 	const scheme = url.protocol.replace(':', '').toLowerCase();
@@ -234,9 +244,7 @@ function parseShareLink(raw) {
 	case 'http': case 'https': outbound = parseBasic(url, 'http'); break;
 	default: throw new Error(`Unsupported link scheme: ${scheme}`);
 	}
-	if (!outbound.server || !Number.isInteger(outbound.server_port) || outbound.server_port < 1 || outbound.server_port > 65535)
-		throw new Error('Invalid server or port');
-	return { outbound, name: tagFrom(url, outbound.type.toUpperCase()) };
+	return validate({ outbound, name: tagFrom(url, outbound.type.toUpperCase()) });
 }
 
 const api = { parseShareLink };

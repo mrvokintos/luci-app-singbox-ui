@@ -37,7 +37,7 @@ const RU={
 	'The default template cannot be deleted':'Стандартный шаблон удалить нельзя','The selected file is not JSON':'Выбранный файл не является JSON',
 	'sing-box is not installed at /usr/bin/sing-box':'sing-box не установлен в /usr/bin/sing-box',
 	'The UI never updates configs in the background. A file changes only after Save, Create config, Import, Delete, or Apply.':'UI никогда не обновляет конфиги в фоне. Файл изменяется только после команд Сохранить, Создать, Загрузить, Удалить или Применить.',
-	'Nothing to show yet':'Пока нечего показывать','Updated':'Обновлено','Config editor':'Редактор конфига','New configuration':'Новая конфигурация'
+	'Nothing to show yet':'Пока нечего показывать','Apply the config again to activate the changes':'Примените конфиг ещё раз, чтобы изменения вступили в силу','Updated':'Обновлено','Config editor':'Редактор конфига','New configuration':'Новая конфигурация'
 };
 
 const LANG=String(document.documentElement.lang||navigator.language||'').toLowerCase().startsWith('ru')?'ru':'en';
@@ -54,6 +54,9 @@ const note=(type,msg)=>{
 	return el;
 };
 
+let serialQueue=Promise.resolve();
+function serial(fn){const run=serialQueue.then(()=>fn());serialQueue=run.catch(()=>{});return run}
+
 async function busy(button,fn){
 	const old=button&&button.textContent;
 	if(button){button.disabled=true;button.textContent='… '+old}
@@ -64,7 +67,7 @@ function validName(name){return !!name&&name.endsWith('.json')&&name!=='.'&&name
 function normalizedName(name){let value=String(name||'').trim().replace(/[\/\\\0]/g,'-');if(!value.toLowerCase().endsWith('.json'))value+='.json';return value}
 function pathFor(name){if(!validName(name))throw new Error(_('Invalid file name'));return DIR+'/'+name}
 function templatePath(name){if(name===DEFAULT_TEMPLATE)return TEMPLATE;if(!validName(name))throw new Error(_('Invalid file name'));return TEMPLATE_DIR+'/'+name}
-async function read(path,fallback=''){try{return await fs.read(path)}catch(_e){return fallback}}
+async function read(path,fallback=''){try{return await fs.read(path)}catch(error){if(error&&error.name==='NotFoundError')return fallback;throw error}}
 function b64(value){return btoa(unescape(encodeURIComponent(value)))}
 
 async function write(path,value){
@@ -108,19 +111,20 @@ async function ensureDirs(){
 
 function size(value){const n=Number(value||0);return n<1024?n+' B':n<1048576?(n/1024).toFixed(1)+' KiB':(n/1048576).toFixed(1)+' MiB'}
 function date(value){if(!value)return'—';const d=new Date(Number(value)*(Number(value)<1e11?1000:1));return isNaN(d.getTime())?'—':d.toLocaleString()}
-async function hasBin(){try{await fs.stat(BIN);return true}catch(_e){return false}}
+let binPromise=null;
+function hasBin(){if(!binPromise)binPromise=fs.exec(BIN,['version']).then(result=>(result.code|0)===0||!!result.stdout,()=>false).then(ok=>{if(!ok)binPromise=null;return ok});return binPromise}
 
 async function checkFile(path){
 	if(!await hasBin())return false;
 	const result=await fs.exec(BIN,['check','-c',path]);
 	if((result.code|0)===0)return true;
 	const message=cleanError(result.stderr||result.stdout||'sing-box check failed');
-	if(/unsupported operation|unknown (command|operation)|not supported/i.test(message))return false;
+	if(/^(error:\s*)?unknown command\b/im.test(message))return false;
 	throw new Error('sing-box check: '+message);
 }
 
 async function checkText(text){
-	const path='/tmp/sbui-check-'+Date.now()+'.json';
+	const path='/tmp/sbui-check-'+Date.now()+'-'+Math.random().toString(36).slice(2)+'.json';
 	try{await write(path,text);await checkFile(path)}finally{try{await fs.remove(path)}catch(_e){}}
 }
 
@@ -129,7 +133,7 @@ async function service(action){
 	if((result.code|0)!==0)throw new Error('sing-box service '+action+': '+cleanError(result.stderr||result.stdout||'failed'));
 }
 
-async function running(){try{const result=await fs.exec(SERVICE,['status']);return(result.code|0)===0||/running/i.test(result.stdout||'')}catch(_e){return false}}
+async function running(){try{const result=await fs.exec(SERVICE,['status']),out=String(result.stdout||'').trim();if(/^running\b/im.test(out))return true;return(result.code|0)===0&&!/not running|inactive|stopped/i.test(out)}catch(_e){return false}}
 
 const DEFAULT={
 	log:{level:'info',timestamp:true},
@@ -220,6 +224,7 @@ function init(root,initialConfigs,initialTemplates,initialTemplateName,initialTe
 	let edited=null;
 	let saved='';
 	let logMarker=initialLogMarker;
+	let templateSeq=0;
 	const list=root.querySelector('#list');
 	const editor=root.querySelector('#editor');
 	const tpl=root.querySelector('#templateEditor');
@@ -257,11 +262,16 @@ function init(root,initialConfigs,initialTemplates,initialTemplateName,initialTe
 
 	async function applyConfig(name){
 		try{
-			const source=pathFor(name);
-			if(source!==ACTIVE){const content=await fs.read(source);await write(ACTIVE,content)}
-			await service('restart');
-			activeName=name;
-			await write(ACTIVE_META,name+'\n');
+			await serial(async()=>{
+				const source=pathFor(name);
+				await checkFile(source);
+				let previous=null;
+				if(source!==ACTIVE){previous=await read(ACTIVE,null);const content=await fs.read(source);await write(ACTIVE,content)}
+				try{await service('restart')}
+				catch(error){if(previous!=null){try{await write(ACTIVE,previous);await service('restart')}catch(_e){}}throw error}
+				activeName=name;
+				await write(ACTIVE_META,name+'\n');
+			});
 			await reloadConfigs();await status();await logState();
 			note('info',_('Config applied')+': '+name);
 		}catch(error){note('error',_('Operation failed')+': '+cleanError(error.message))}
@@ -270,7 +280,7 @@ function init(root,initialConfigs,initialTemplates,initialTemplateName,initialTe
 	async function openConfig(name){
 		if(edited&&editor.value!==saved&&!confirm(_('Unsaved changes will be lost. Continue?')))return;
 		try{
-			edited=name;saved=await read(pathFor(name));editor.value=saved;configHighlight();
+			const text=await read(pathFor(name));edited=name;saved=text;editor.value=text;configHighlight();
 			root.querySelector('#editTitle').textContent=_('Config editor')+': '+name;
 			root.querySelector('#listView').style.display='none';root.querySelector('#editView').style.display='';editor.focus();
 		}catch(error){note('error',error.message)}
@@ -303,6 +313,7 @@ function init(root,initialConfigs,initialTemplates,initialTemplateName,initialTe
 		if(!file)return;
 		const name=normalizedName(file.name);
 		if(!validName(name))throw new Error(_('Invalid file name'));
+		await reloadConfigs();
 		if(configs.some(item=>item.name===name)&&!confirm(_('Overwrite existing file?')))return;
 		const text=await readFileObject(file);
 		try{JSON.parse(text)}catch(_e){throw new Error(_('The selected file is not JSON'))}
@@ -313,7 +324,9 @@ function init(root,initialConfigs,initialTemplates,initialTemplateName,initialTe
 	async function switchTemplate(name,force){
 		if(!templates.includes(name))return false;
 		if(!force&&tpl.value!==templateSaved&&!confirm(_('Unsaved changes will be lost. Continue?'))){renderTemplateOptions();return false}
+		const seq=++templateSeq;
 		let text=await read(templatePath(name));
+		if(seq!==templateSeq)return false;
 		if(!text.trim())text=defaultText();
 		templateName=name;templateSaved=text;tpl.value=text;templateHighlight();renderTemplateOptions();
 		await ensureDirs();await write(ACTIVE_TEMPLATE,name+'\n');
@@ -326,6 +339,7 @@ function init(root,initialConfigs,initialTemplates,initialTemplateName,initialTe
 		const name=normalizedName(entered);
 		if(!validName(name)||name===DEFAULT_TEMPLATE)throw new Error(_('Invalid file name'));
 		if(templates.includes(name)&&!confirm(_('Overwrite existing file?')))return;
+		if(tpl.value!==templateSaved&&!confirm(_('Unsaved changes will be lost. Continue?')))return;
 		await ensureDirs();await write(templatePath(name),defaultText());await reloadTemplates();await switchTemplate(name,true);
 		note('info',_('Template created')+': '+name);
 	}
@@ -347,12 +361,13 @@ function init(root,initialConfigs,initialTemplates,initialTemplateName,initialTe
 		root.querySelectorAll('[data-panel]').forEach(item=>item.classList.toggle('active',item.dataset.panel===button.dataset.tab));
 		if(button.dataset.tab==='logs')logs();
 	});
-	root.querySelectorAll('[data-service]').forEach(button=>button.onclick=()=>busy(button,async()=>{try{await service(button.dataset.service);await status()}catch(error){note('error',_('Operation failed')+': '+error.message)}}));
+	root.querySelectorAll('[data-service]').forEach(button=>button.onclick=()=>busy(button,async()=>{try{await serial(()=>service(button.dataset.service));await status()}catch(error){note('error',_('Operation failed')+': '+error.message)}}));
 	root.querySelector('#refresh').onclick=event=>busy(event.currentTarget,reloadConfigs);
 	root.querySelector('#back').onclick=()=>closeConfig(false);
 	root.querySelector('#new').onclick=async()=>{
 		const entered=prompt(_('Enter a file name'),'new-config.json');if(entered==null)return;
 		const name=normalizedName(entered);if(!validName(name))return note('error',_('Invalid file name'));
+		try{await reloadConfigs()}catch(_e){}
 		if(configs.some(item=>item.name===name)&&!confirm(_('Overwrite existing file?')))return;
 		try{await ensureDirs();await write(pathFor(name),'{}\n');await reloadConfigs();await openConfig(name)}catch(error){note('error',_('Operation failed')+': '+error.message)}
 	};
@@ -361,15 +376,23 @@ function init(root,initialConfigs,initialTemplates,initialTemplateName,initialTe
 	root.querySelector('#format').onclick=()=>{try{editor.value=JSON.stringify(JSON.parse(editor.value),null,2)+'\n';configHighlight()}catch(error){note('error',error.message)}};
 	root.querySelector('#save').onclick=event=>busy(event.currentTarget,async()=>{
 		if(!edited)return;if(!editor.value.trim())return note('error',_('Config is empty'));
-		try{JSON.parse(editor.value);await checkText(editor.value);await write(pathFor(edited),editor.value);saved=editor.value;await reloadConfigs();note('info',_('Config saved')+': '+edited)}catch(error){note('error',_('Operation failed')+': '+error.message)}
+		const name=edited,text=editor.value;
+		try{
+			JSON.parse(text);await checkText(text);await write(pathFor(name),text);
+			if(edited===name)saved=text;
+			await reloadConfigs();note('info',_('Config saved')+': '+name);
+			if(name===activeName&&pathFor(name)!==ACTIVE)note('info',_('Apply the config again to activate the changes'));
+		}catch(error){note('error',_('Operation failed')+': '+error.message)}
 	});
 	root.querySelector('#generate').onclick=event=>busy(event.currentTarget,async()=>{
 		try{
 			const parsed=shareLink.parseShareLink(root.querySelector('#link').value);
 			const name=normalizedName(root.querySelector('#generatedName').value||parsed.name||_('New configuration'));
 			if(!validName(name))throw new Error(_('Invalid file name'));
+			const templateText=tpl.value;
+			await reloadConfigs();
 			if(configs.some(item=>item.name===name)&&!confirm(_('Overwrite existing file?')))return;
-			const base=JSON.parse(tpl.value);
+			const base=JSON.parse(templateText);
 			if(!Array.isArray(base.outbounds))throw new Error(_('Template must contain an outbounds array'));
 			const output=JSON.parse(JSON.stringify(base));
 			output.outbounds=output.outbounds.filter(item=>!item||item.tag!=='proxy');
@@ -385,12 +408,26 @@ function init(root,initialConfigs,initialTemplates,initialTemplateName,initialTe
 	root.querySelector('#deleteTemplate').onclick=async event=>{await busy(event.currentTarget,async()=>{try{await deleteTemplate()}catch(error){note('error',_('Operation failed')+': '+cleanError(error.message))}});renderTemplateOptions()};
 	root.querySelector('#formatTemplate').onclick=()=>{try{tpl.value=JSON.stringify(JSON.parse(tpl.value),null,2)+'\n';templateHighlight()}catch(error){note('error',_('Template must be valid JSON')+': '+error.message)}};
 	root.querySelector('#saveTemplate').onclick=event=>busy(event.currentTarget,async()=>{
-		try{const parsed=JSON.parse(tpl.value);if(!Array.isArray(parsed.outbounds))throw new Error(_('Template must contain an outbounds array'));tpl.value=JSON.stringify(parsed,null,2)+'\n';templateHighlight();await ensureDirs();await write(templatePath(templateName),tpl.value);templateSaved=tpl.value;note('info',_('Template saved')+': '+templateName)}catch(error){note('error',_('Template must be valid JSON')+': '+error.message)}
+		try{const parsed=JSON.parse(tpl.value);if(!Array.isArray(parsed.outbounds))throw new Error(_('Template must contain an outbounds array'));const name=templateName,text=JSON.stringify(parsed,null,2)+'\n';tpl.value=text;templateHighlight();await ensureDirs();await write(templatePath(name),text);if(templateName===name)templateSaved=text;note('info',_('Template saved')+': '+name)}catch(error){note('error',_('Template must be valid JSON')+': '+error.message)}
 	});
 	root.querySelector('#resetTemplate').onclick=()=>{tpl.value=defaultText();templateHighlight();note('info',_('Template restored'))};
 
-	async function logState(){const button=root.querySelector('#toggleLogs');try{const config=JSON.parse(await read(ACTIVE));const off=config.log&&config.log.disabled===true;button.dataset.disabled=off?'1':'0';button.textContent=off?_('Enable logs'):_('Disable logs');button.classList.toggle('cbi-button-negative',!off);button.classList.toggle('cbi-button-positive',off)}catch(_e){button.disabled=true;button.textContent=_('Unavailable')}}
-	async function toggleLogs(){const config=JSON.parse(await read(ACTIVE));config.log=config.log&&typeof config.log==='object'&&!Array.isArray(config.log)?config.log:{};const off=config.log.disabled===true;config.log.disabled=!off;const text=JSON.stringify(config,null,2)+'\n';await checkText(text);await write(ACTIVE,text);await service('restart');await logState();await status();note('info',off?_('Logs enabled'):_('Logs disabled'))}
+	async function logState(){const button=root.querySelector('#toggleLogs');try{const config=JSON.parse(await read(ACTIVE));const off=config.log&&config.log.disabled===true;button.disabled=false;button.dataset.disabled=off?'1':'0';button.textContent=off?_('Enable logs'):_('Disable logs');button.classList.toggle('cbi-button-negative',!off);button.classList.toggle('cbi-button-positive',off)}catch(_e){button.disabled=true;button.textContent=_('Unavailable')}}
+	function setLogDisabled(config,disabled){config.log=config.log&&typeof config.log==='object'&&!Array.isArray(config.log)?config.log:{};config.log.disabled=disabled;return JSON.stringify(config,null,2)+'\n'}
+	async function toggleLogs(){
+		const off=await serial(async()=>{
+			const previous=await read(ACTIVE),config=JSON.parse(previous);
+			const off=!!(config.log&&config.log.disabled===true);
+			const text=setLogDisabled(config,!off);
+			await checkText(text);await write(ACTIVE,text);
+			try{await service('restart')}catch(error){try{await write(ACTIVE,previous);await service('restart')}catch(_e){}throw error}
+			if(activeName&&pathFor(activeName)!==ACTIVE){
+				try{const source=JSON.parse(await read(pathFor(activeName)));await write(pathFor(activeName),setLogDisabled(source,!off))}catch(_e){}
+			}
+			return off;
+		});
+		await logState();await status();note('info',off?_('Logs enabled'):_('Logs disabled'));
+	}
 	async function logText(){const result=await fs.exec('/sbin/logread',['-e','sing-box']);return String(result.stdout||'').trim()}
 	async function logs(){const element=root.querySelector('#log');try{const raw=await logText(),at=logMarker?raw.lastIndexOf(logMarker):-1,shown=at>=0?raw.slice(at+logMarker.length).trim():raw;element.textContent=shown||_('Nothing to show yet');element.scrollTop=element.scrollHeight;root.querySelector('#logTime').textContent=_('Updated')+': '+new Date().toLocaleTimeString()}catch(error){element.textContent=error.message}}
 	async function clearLogs(){const raw=await logText(),lines=raw.split('\n').filter(Boolean);logMarker=lines.length?lines[lines.length-1]:'';await write(LOG_MARKER,logMarker+'\n');root.querySelector('#log').textContent=_('Nothing to show yet');root.querySelector('#logTime').textContent=''}
@@ -406,13 +443,20 @@ return view.extend({
 	async render(){
 		const configs=await listConfigs();
 		const templates=await listTemplates();
-		let templateName=(await read(ACTIVE_TEMPLATE,DEFAULT_TEMPLATE)).trim();
+		const soft=(path,fallback)=>read(path,fallback).catch(()=>fallback);
+		let templateName=(await soft(ACTIVE_TEMPLATE,DEFAULT_TEMPLATE)).trim();
 		if(!templates.includes(templateName))templateName=DEFAULT_TEMPLATE;
-		let templateText=await read(templatePath(templateName));
+		let templateText;
+		try{templateText=await read(templatePath(templateName))}
+		catch(error){
+			note('error',_('Operation failed')+': '+templateName+': '+cleanError(error.message));
+			templateName=DEFAULT_TEMPLATE;
+			try{templateText=await read(TEMPLATE)}catch(_e){templateText=''}
+		}
 		if(!templateText.trim())templateText=defaultText();
-		let activeName=(await read(ACTIVE_META,'config.json')).trim();
+		let activeName=(await soft(ACTIVE_META,'config.json')).trim();
 		if(!configs.some(item=>item.name===activeName))activeName=configs.some(item=>item.name==='config.json')?'config.json':'';
-		const logMarker=(await read(LOG_MARKER)).trim();
+		const logMarker=(await soft(LOG_MARKER,'')).trim();
 		const root=E('div',{class:'sbox-app'});root.innerHTML=html();
 		setTimeout(()=>init(root,configs,templates,templateName,templateText,activeName,logMarker),0);
 		return root;
