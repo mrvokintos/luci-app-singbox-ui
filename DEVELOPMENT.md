@@ -70,11 +70,14 @@
 
 `sing-box check` выполняется при сохранении/импорте, если ядро установлено. Если версия ядра не поддерживает операцию `check`, проверка считается необязательной; реальные ошибки показываются в уведомлении.
 
-Для файлов больше лимита LuCI используется схема:
+Лимиты rpcd/uhttpd обходятся через helper:
 
 ```text
-JS -> /tmp/.sbui-* fragments -> helper merge -> destination
+запись > 52 КБ:  JS -> /tmp/.sbui-* текстовые фрагменты (16K символов) -> helper merge -> tmp -> mv -> destination
+чтение >= 256 КиБ: JS -> helper read-chunk <file> <offset> (до 64 КиБ, по границе UTF-8) -> склейка в JS
 ```
+
+`file.read` в rpcd отклоняет файлы от 256 КиБ (статус 8), `file.exec` отдаёт около 250 КБ stdout. Фрагменты — обычный текст, а не base64: в busybox на OpenWrt applet `base64` может отсутствовать. Чтение кусками использует `ucode` (зависимость `luci-base`).
 
 Не меняйте этот путь на shell-команду с пользовательским вводом.
 
@@ -113,10 +116,11 @@ JS -> /tmp/.sbui-* fragments -> helper merge -> destination
 ensure-dir
 activate/apply <name>
 merge <safe-prefix> <safe-destination>
+read-chunk <safe-destination> <offset>
 cleanup <safe-prefix>
 ```
 
-Он отвергает `..`, `/` и обратные слеши в именах, а destinations ограничены `/etc/sing-box/*.json`, legacy-шаблоном, `/etc/singbox-ui/templates/*.json` и временными check-файлами.
+Он отвергает `..`, `/` и обратные слеши в именах, а destinations (и файлы для `read-chunk`) ограничены `/etc/sing-box/*.json`, legacy-шаблоном, `/etc/singbox-ui/templates/*.json` и временными check-файлами.
 
 При добавлении runtime-пути обновляйте `root/usr/share/rpcd/acl.d/luci-app-singbox-ui.json`. Не давайте UI общий root-доступ или произвольный `exec`; privileged shell-операции добавляются узкими командами helper.
 
@@ -215,7 +219,7 @@ jq -e '.route.default_domain_resolver == "local-dns"' \\
 git diff --check
 ```
 
-`tests/helper.test.sh` проверяет создание каталогов, merge config/template и отклонение пути с `..`. Перед публикацией проверьте:
+`tests/helper.test.sh` проверяет создание каталогов, merge config/template, сохранность файла при сбое merge, `read-chunk` (если есть `ucode`) и отклонение пути с `..`. Перед публикацией проверьте:
 
 ```sh
 git status --short --branch

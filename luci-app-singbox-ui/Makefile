@@ -5,7 +5,7 @@ PKG_VERSION:=3.0.0_rc1
 PKG_RELEASE:=1
 
 LUCI_TITLE:=LuCI singbox-ui app
-LUCI_DEPENDS:=+luci-base
+LUCI_DEPENDS:=+luci-base +ucode +ucode-mod-fs
 LUCI_PKGARCH:=all
 PKG_LICENSE:=GPL-2.0-only
 PKG_MAINTAINER:=mrvokintos <mrvokintos@users.noreply.github.com>

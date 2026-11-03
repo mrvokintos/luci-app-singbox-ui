@@ -71,14 +71,17 @@ case "${1:-}" in
 			echo "No data fragments for $prefix" >&2
 			exit 1
 		fi
-		# Decode into a temp file next to the destination and rename it only on
-		# success, so a broken transfer never truncates the existing file.
+		# Fragments are plain text (busybox on OpenWrt may lack base64). They are
+		# joined into a temp file next to the destination, which is renamed only
+		# on success, so a broken transfer never truncates the existing file.
 		tmp="$destination.sbui-tmp.$$"
 		trap 'rm -f "$tmp"' EXIT
 		status=0
+		: > "$tmp"
 		for fragment in "$prefix"*; do
-			[ -f "$fragment" ] && cat "$fragment"
-		done | base64 -d > "$tmp" || status=$?
+			[ -f "$fragment" ] || continue
+			cat "$fragment" >> "$tmp" || { status=$?; break; }
+		done
 		rm -f "$prefix"*
 		if [ "$status" -ne 0 ] || [ ! -s "$tmp" ]; then
 			echo "Invalid data for $destination" >&2
@@ -86,6 +89,36 @@ case "${1:-}" in
 		fi
 		chmod 0600 "$tmp"
 		mv -f "$tmp" "$destination"
+		;;
+	read-chunk)
+		# rpcd file.read refuses files of 256 KiB and more, so the UI reads large
+		# files through this command: up to 64 KiB from <offset>, never ending
+		# inside a UTF-8 sequence. Empty output means end of file.
+		source="${2:-}"
+		offset="${3:-0}"
+		valid_destination "$source"
+		case "$offset" in
+			''|*[!0-9]*) echo "Invalid offset: $offset" >&2; exit 2 ;;
+		esac
+		if [ ! -f "$source" ]; then
+			echo "No such file: $source" >&2
+			exit 4
+		fi
+		command -v ucode >/dev/null 2>&1 || { echo "ucode is required to read large files" >&2; exit 1; }
+		exec ucode -e '
+			let fs = require("fs");
+			let f = fs.open(ARGV[0], "r");
+			if (!f) { warn(fs.error(), "\n"); exit(1); }
+			f.seek(+ARGV[1]);
+			let max = 65536, data = f.read(max + 3) ?? "";
+			f.close();
+			if (length(data) > max) {
+				let cut = max;
+				while (cut > 0 && (ord(data, cut) & 0xC0) == 0x80) cut--;
+				data = substr(data, 0, cut);
+			}
+			print(data);
+		' -- "$source" "$offset"
 		;;
 	cleanup)
 		prefix="${2:-}"

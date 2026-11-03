@@ -67,16 +67,44 @@ function validName(name){return !!name&&name.endsWith('.json')&&name!=='.'&&name
 function normalizedName(name){let value=String(name||'').trim().replace(/[\/\\\0]/g,'-');if(!value.toLowerCase().endsWith('.json'))value+='.json';return value}
 function pathFor(name){if(!validName(name))throw new Error(_('Invalid file name'));return DIR+'/'+name}
 function templatePath(name){if(name===DEFAULT_TEMPLATE)return TEMPLATE;if(!validName(name))throw new Error(_('Invalid file name'));return TEMPLATE_DIR+'/'+name}
-async function read(path,fallback=''){try{return await fs.read(path)}catch(error){if(error&&error.name==='NotFoundError')return fallback;throw error}}
-function b64(value){return btoa(unescape(encodeURIComponent(value)))}
+async function read(path,fallback=''){
+	try{return await fs.read(path)}
+	catch(error){
+		if(error&&error.name==='NotFoundError')return fallback;
+		if(error&&error.name==='PermissionError')throw error;
+		return readChunked(path,error);
+	}
+}
+// rpcd file.read refuses files of 256 KiB and more; read them through the helper.
+async function readChunked(path,original){
+	const encoder=new TextEncoder();
+	let text='',offset=0;
+	for(;;){
+		let result;
+		try{result=await fs.exec(HELPER,['read-chunk',path,String(offset)])}catch(_e){throw original}
+		if((result.code|0)!==0)throw new Error(cleanError(result.stderr||result.stdout)||String(original&&original.message||'read failed'));
+		const chunk=String(result.stdout||'');
+		if(!chunk)return text;
+		text+=chunk;offset+=encoder.encode(chunk).length;
+	}
+}
+async function readRequired(path){const text=await read(path,null);if(text==null)throw new Error(path+': not found');return text}
 
 async function write(path,value){
 	const text=String(value??'');
 	if(new TextEncoder().encode(text).length<=52*1024)return fs.write(path,text);
-	const data=b64(text);
+	// Large files go in plain-text fragments that the helper concatenates.
+	// 16K UTF-16 units stay under the ubus request limit even at 3 bytes per unit;
+	// a fragment never ends between the halves of a surrogate pair.
 	const prefix='/tmp/.sbui-'+Date.now()+'-'+Math.random().toString(36).slice(2)+'-';
 	try{
-		for(let i=0,p=0;i<data.length;i+=45*1024,p++)await fs.write(prefix+String(p).padStart(5,'0'),data.slice(i,i+45*1024));
+		for(let i=0,p=0;i<text.length;p++){
+			let end=Math.min(i+16*1024,text.length);
+			const code=text.charCodeAt(end-1);
+			if(end<text.length&&code>=0xD800&&code<=0xDBFF)end--;
+			await fs.write(prefix+String(p).padStart(5,'0'),text.slice(i,end));
+			i=end;
+		}
 		const result=await fs.exec(HELPER,['merge',prefix,path]);
 		if((result.code|0)!==0)throw new Error(result.stderr||result.stdout||'write failed');
 	}catch(error){
@@ -266,7 +294,7 @@ function init(root,initialConfigs,initialTemplates,initialTemplateName,initialTe
 				const source=pathFor(name);
 				await checkFile(source);
 				let previous=null;
-				if(source!==ACTIVE){previous=await read(ACTIVE,null);const content=await fs.read(source);await write(ACTIVE,content)}
+				if(source!==ACTIVE){previous=await read(ACTIVE,null);const content=await readRequired(source);await write(ACTIVE,content)}
 				try{await service('restart')}
 				catch(error){if(previous!=null){try{await write(ACTIVE,previous);await service('restart')}catch(_e){}}throw error}
 				activeName=name;
@@ -292,7 +320,7 @@ function init(root,initialConfigs,initialTemplates,initialTemplateName,initialTe
 	}
 
 	async function downloadConfig(name){
-		try{downloadText(name,await fs.read(pathFor(name)))}catch(error){note('error',_('Operation failed')+': '+cleanError(error.message))}
+		try{downloadText(name,await readRequired(pathFor(name)))}catch(error){note('error',_('Operation failed')+': '+cleanError(error.message))}
 	}
 
 	async function deleteConfig(name){
