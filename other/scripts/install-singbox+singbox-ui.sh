@@ -21,7 +21,8 @@ cleanup_lib() {
 ensure_ui_library() {
     if [ -f "$UI_PATH" ]; then
         . "$UI_PATH"
-        return 0
+        # Старая копия без ui_choose — скачать заново / Stale copy without ui_choose: download again
+        command -v ui_choose >/dev/null 2>&1 && return 0
     fi
 
     mkdir -p "$SCRIPT_DIR/lib" 2>/dev/null
@@ -76,20 +77,7 @@ init_language() {
     local script_name="install-singbox+singbox-ui.sh"
 
     if [ -z "$LANG" ]; then
-        while true; do
-            show_message "Выберите язык / Select language [1/2]:"
-            show_message "1. Русский (Russian)"
-            show_message "2. English (Английский)"
-            read_input " Ваш выбор / Your choice [1/2]: " LANG
-            case "$LANG" in
-                1|2)
-                    break
-                    ;;
-                *)
-                    show_error "Неверный выбор / Invalid choice"
-                    ;;
-            esac
-        done
+        ui_choose LANG "Язык / Language" 1 "Русский (Russian)" "English (Английский)"
     fi
 
     case ${LANG:-2} in
@@ -113,21 +101,17 @@ init_language() {
         MSG_INSTALL_SINGBOX_UI="1. Singbox-ui"
         MSG_INSTALL_SINGBOX="2. Singbox"
         MSG_INSTALL_SINGBOX_UI_AND_SINGBOX="3. Singbox and singbox-ui"
-        MSG_INSTALL_ACTION_CHOICE=" Ваш выбор: "
         MSG_SINGBOX_CHOOSE="Выберите сборку ядра sing-box:"
         MSG_SINGBOX_OPTION1="1) Original — SagerNet/sing-box (по умолчанию)"
         MSG_SINGBOX_OPTION2="2) Extended — shtorm-7/sing-box-extended"
         MSG_SINGBOX_OPTION3="3) Clean — mrvokintos/sing-box-clean"
-        MSG_SINGBOX_PROMPT="Введите ваш выбор [1-3, Enter=1]:"
         MSG_OPERATION="Выберите тип операции:"
         MSG_OPERATION_INSTALL="1. Установка"
         MSG_OPERATION_DELETE="2. Удаление"
         MSG_OPERATION_REINSTALL_UPDATE="3. Переустановка/Обновление"
-        MSG_OPERATION_CHOICE="Ваш выбор: "
         MSG_BACKUP_CONFIGS="Сохранение резервных конфигов..."
         MSG_RESTORE_CONFIGS="Восстановление резервных конфигов..."
         MSG_INVALID_INPUT="Некорректный ввод"
-        MSG_REPEAT_INPUT="Повторите ввод"
         ;;
     *)
         MSG_INSTALL_TITLE="Starting! ($script_name)"
@@ -149,21 +133,17 @@ init_language() {
         MSG_INSTALL_SINGBOX_UI="1. Singbox-ui"
         MSG_INSTALL_SINGBOX="2. Singbox"
         MSG_INSTALL_SINGBOX_UI_AND_SINGBOX="3. Singbox and singbox-ui"
-        MSG_INSTALL_ACTION_CHOICE="Your choice: "
         MSG_SINGBOX_CHOOSE="Choose the sing-box core build:"
         MSG_SINGBOX_OPTION1="1) Original — SagerNet/sing-box (default)"
         MSG_SINGBOX_OPTION2="2) Extended — shtorm-7/sing-box-extended"
         MSG_SINGBOX_OPTION3="3) Clean — mrvokintos/sing-box-clean"
-        MSG_SINGBOX_PROMPT="Enter your choice [1-3, Enter=1]:"
         MSG_OPERATION="Select install operation:"
         MSG_OPERATION_INSTALL="1. Install"
         MSG_OPERATION_DELETE="2. Delete"
         MSG_OPERATION_REINSTALL_UPDATE="3. Reinstall/Update"
-        MSG_OPERATION_CHOICE="Your choice: "
         MSG_BACKUP_CONFIGS="Backing up configs..."
         MSG_RESTORE_CONFIGS="Restoring backup configs..."
         MSG_INVALID_INPUT="Invalid input"
-        MSG_REPEAT_INPUT="Repeat input"
         ;;
 esac
 }
@@ -190,21 +170,7 @@ update_pkgs() {
 # Выбор операции установки / Choose install operation
 choose_install_operation() {
     if [ -z "$OPERATION" ]; then
-        while true; do
-            show_message "$MSG_OPERATION"
-            show_message "$MSG_OPERATION_INSTALL"
-            show_message "$MSG_OPERATION_DELETE"
-            show_message "$MSG_OPERATION_REINSTALL_UPDATE"
-            read_input "$MSG_OPERATION_CHOICE" OPERATION
-            case "$OPERATION" in
-                1|2|3)
-                    break
-                    ;;
-                *)
-                    show_error "$MSG_INVALID_INPUT. $MSG_REPEAT_INPUT"
-                    ;;
-            esac
-        done
+        ui_choose OPERATION "$MSG_OPERATION" 1 "$MSG_OPERATION_INSTALL" "$MSG_OPERATION_DELETE" "$MSG_OPERATION_REINSTALL_UPDATE"
     fi
 }
 
@@ -270,23 +236,8 @@ choose_singbox_core() {
     [ "$OPERATION" = "2" ] && return 0
     [ -n "$SINGBOX_INSTALL_MODE" ] && return 0
 
-    while true; do
-        show_message ""
-        show_message "$MSG_SINGBOX_CHOOSE"
-        show_message "$MSG_SINGBOX_OPTION1"
-        show_message "$MSG_SINGBOX_OPTION2"
-        show_message "$MSG_SINGBOX_OPTION3"
-        show_message ""
-        read_input "$MSG_SINGBOX_PROMPT" SINGBOX_INSTALL_MODE
-        SINGBOX_INSTALL_MODE="${SINGBOX_INSTALL_MODE:-1}"
-        case "$SINGBOX_INSTALL_MODE" in
-            1|2|3) return 0 ;;
-            *)
-                SINGBOX_INSTALL_MODE=""
-                show_error "$MSG_INVALID_INPUT. $MSG_REPEAT_INPUT"
-                ;;
-        esac
-    done
+    ui_choose SINGBOX_INSTALL_MODE "$MSG_SINGBOX_CHOOSE" 1 \
+        "$MSG_SINGBOX_OPTION1" "$MSG_SINGBOX_OPTION2" "$MSG_SINGBOX_OPTION3"
 }
 
 install_singbox_script() {
@@ -314,21 +265,8 @@ install_singbox_ui_script() {
 # Выбор варианта установки / Choose installation variant
 choose_action() {
     if [ -z "$ACTION_CHOICE" ]; then
-        while true; do
-            show_message "$MSG_INSTALL_ACTION"
-            show_message "$MSG_INSTALL_SINGBOX_UI"
-            show_message "$MSG_INSTALL_SINGBOX"
-            show_message "$MSG_INSTALL_SINGBOX_UI_AND_SINGBOX"
-            read_input "$MSG_INSTALL_ACTION_CHOICE" ACTION_CHOICE
-            case "$ACTION_CHOICE" in
-                1|2|3)
-                    break
-                    ;;
-                *)
-                    show_error "$MSG_INVALID_INPUT. $MSG_REPEAT_INPUT"
-                    ;;
-            esac
-        done
+        ui_choose ACTION_CHOICE "$MSG_INSTALL_ACTION" 3 \
+            "$MSG_INSTALL_SINGBOX_UI" "$MSG_INSTALL_SINGBOX" "$MSG_INSTALL_SINGBOX_UI_AND_SINGBOX"
     fi
 
     case "$ACTION_CHOICE" in

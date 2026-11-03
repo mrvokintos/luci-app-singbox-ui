@@ -19,7 +19,8 @@ cleanup_ui_library() {
 ensure_ui_library() {
     if [ -f "$UI_PATH" ]; then
         . "$UI_PATH"
-        return 0
+        # Старая копия без ui_choose — скачать заново / Stale copy without ui_choose: download again
+        command -v ui_choose >/dev/null 2>&1 && return 0
     fi
 
     mkdir -p "$SCRIPT_DIR/lib" 2>/dev/null
@@ -48,20 +49,7 @@ init_language() {
     local script_name="install.sh"
 
     if [ -z "$LANG" ]; then
-        while true; do
-            show_message "Выберите язык / Select language [1/2]:"
-            show_message "1. Русский (Russian)"
-            show_message "2. English (Английский)"
-            read_input " Ваш выбор / Your choice [1/2]: " LANG
-            case "$LANG" in
-                1|2)
-                    break
-                    ;;
-                *)
-                    show_error "Неверный выбор / Invalid choice"
-                    ;;
-            esac
-        done
+        ui_choose LANG "Язык / Language" 1 "Русский (Russian)" "English (Английский)"
     fi
 
     case ${LANG:-2} in
@@ -119,25 +107,12 @@ complete_script() {
 # Выбор ветки / Branch selection
 choose_branch() {
     if [ -z "$BRANCH_SELECTED" ]; then
-        while true; do
-            show_message "Выберите ветку скриптов / Select script branch [1/2]:"
-            show_message "1. main (стабильная / stable, по умолчанию)"
-            show_message "2. dev (разработка / development)"
-            read_input " Ваш выбор / Your choice [1/2, Enter=1]: " B_CHOICE
-            case "${B_CHOICE:-1}" in
-                1)
-                    BRANCH="main"
-                    break
-                    ;;
-                2)
-                    BRANCH="dev"
-                    break
-                    ;;
-                *)
-                    show_error "Неверный выбор / Invalid choice"
-                    ;;
-            esac
-        done
+        ui_choose B_CHOICE "Ветка скриптов / Script branch" 1 \
+            "main (стабильная / stable)" "dev (разработка / development)"
+        case "$B_CHOICE" in
+            2) BRANCH="dev" ;;
+            *) BRANCH="main" ;;
+        esac
         BRANCH_SELECTED=1
     fi
 }

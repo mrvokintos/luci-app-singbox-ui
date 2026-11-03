@@ -21,7 +21,8 @@ cleanup_lib() {
 ensure_ui_library() {
     if [ -f "$UI_PATH" ]; then
         . "$UI_PATH"
-        return 0
+        # Старая копия без ui_choose — скачать заново / Stale copy without ui_choose: download again
+        command -v ui_choose >/dev/null 2>&1 && return 0
     fi
 
     mkdir -p "$SCRIPT_DIR/lib" 2>/dev/null
@@ -76,20 +77,7 @@ init_language() {
     local script_name="install-singbox-ui.sh"
     
     if [ -z "$LANG" ]; then
-        while true; do
-            show_message "Выберите язык / Select language [1/2]:"
-            show_message "1. Русский (Russian)"
-            show_message "2. English (Английский)"
-            read_input " Ваш выбор / Your choice [1/2]: " LANG
-            case "$LANG" in
-                1|2)
-                    break
-                    ;;
-                *)
-                    show_error "Неверный выбор / Invalid choice"
-                    ;;
-            esac
-        done
+        ui_choose LANG "Язык / Language" 1 "Русский (Russian)" "English (Английский)"
     fi
 
     case ${LANG:-2} in
@@ -119,12 +107,10 @@ init_language() {
             MSG_INSTALL_LATEST="Устанавливается последняя доступная сборка (latest)..."
             MSG_DOWNLOAD_ERROR="Ошибка загрузки файла. Установка прервана."
             MSG_WAITING="Ожидание %d сек"
-            MSG_YOUR_CHOICE="Ваш выбор: "
             MSG_COMPLETE="Выполнено! ($script_name)"
             MSG_CONFIG_MENU="Настройка config.json:"
             MSG_CONFIG_MENU_1="1) Пропустить (по умолчанию)"
             MSG_CONFIG_MENU_2="2) Ввести config.json вручную"
-            MSG_CONFIG_MENU_CHOICE="Ваш выбор: "
             MSG_EDIT_SUCCESS="Успешно"
             MSG_INVALID_INPUT="Некорректный ввод"
             MSG_REPEAT_INPUT="Повторите ввод"
@@ -132,7 +118,6 @@ init_language() {
             MSG_OPERATION_INSTALL="1. Установка"
             MSG_OPERATION_DELETE="2. Удаление"
             MSG_OPERATION_REINSTALL_UPDATE="3. Переустановка/Обновление"
-            MSG_OPERATION_CHOICE=" Ваш выбор: "
             MSG_ALREADY_INSTALLED="Ошибка: Пакет уже установлен. Если устанавливали этим скриптом - выберите переустановку (3). Иначе выполните сброс роутера."
             MSG_UNINSTALLING="Удаление singbox-ui..."
             MSG_UNINSTALL_EXISTING_FILES="Удаление существующих файлов singbox-ui..."
@@ -173,12 +158,10 @@ init_language() {
             MSG_DOWNLOAD_ERROR="Download failed. Installation aborted."
             MSG_CLEANUP_LIB="Cleaning library..."
             MSG_WAITING="Waiting %d sec"
-            MSG_YOUR_CHOICE="Your choice: "
             MSG_COMPLETE="Completed! ($script_name)"
             MSG_CONFIG_MENU="Configure config.json:"
             MSG_CONFIG_MENU_1="1) Skip (default)"
             MSG_CONFIG_MENU_2="2) Edit config.json manually"
-            MSG_CONFIG_MENU_CHOICE="Your choice: "
             MSG_EDIT_SUCCESS="Success"
             MSG_INVALID_INPUT="Invalid input"
             MSG_REPEAT_INPUT="Repeat input"
@@ -186,7 +169,6 @@ init_language() {
             MSG_OPERATION_INSTALL="1. Install"
             MSG_OPERATION_DELETE="2. Delete"
             MSG_OPERATION_REINSTALL_UPDATE="3. Reinstall/Update"
-            MSG_OPERATION_CHOICE="Your choice: "
             MSG_ALREADY_INSTALLED="Error: Package already installed. If installed via this script - choose reinstall (3). Otherwise reset the router."
             MSG_UNINSTALLING="Uninstalling singbox-ui..."
             MSG_UNINSTALL_EXISTING_FILES="Removing existing singbox-ui files..."
@@ -228,21 +210,7 @@ update_pkgs() {
 # Выбор операции установки / Choose install operation
 choose_install_operation() {
     if [ -z "$OPERATION" ]; then
-        while true; do
-            show_message "$MSG_OPERATION"
-            show_message "$MSG_OPERATION_INSTALL"
-            show_message "$MSG_OPERATION_DELETE"
-            show_message "$MSG_OPERATION_REINSTALL_UPDATE"
-            read_input "$MSG_OPERATION_CHOICE" OPERATION
-            case "$OPERATION" in
-                1|2|3)
-                    break
-                    ;;
-                *)
-                    show_error "$MSG_INVALID_INPUT. $MSG_REPEAT_INPUT"
-                    ;;
-            esac
-        done
+        ui_choose OPERATION "$MSG_OPERATION" 1 "$MSG_OPERATION_INSTALL" "$MSG_OPERATION_DELETE" "$MSG_OPERATION_REINSTALL_UPDATE"
     fi
 }
 
@@ -288,11 +256,8 @@ choose_install_version() {
     local url_latest="https://github.com/mrvokintos/luci-app-singbox-ui/releases/latest/download/luci-app-singbox-ui.${PKG_EXT}"
 
     while true; do
-        show_message "$MSG_CHOOSE_VERSION"
-        show_message "$MSG_OPTION_1"
-        show_message "$MSG_OPTION_2"
-        show_message "$MSG_OPTION_3"
-        read_input "$MSG_YOUR_CHOICE" VERSION_CHOICE
+        [ -n "$VERSION_CHOICE" ] || ui_choose VERSION_CHOICE "$MSG_CHOOSE_VERSION" 1 \
+            "$MSG_OPTION_1" "$MSG_OPTION_2" "$MSG_OPTION_3"
 
         case "${VERSION_CHOICE:-1}" in
         1)
@@ -318,25 +283,12 @@ choose_install_version() {
             ;;
         3)
             local runner_branch="main"
-            while true; do
-                show_message "$MSG_CHOOSE_RUNNER_BRANCH"
-                show_message "$MSG_RUNNER_BRANCH_1"
-                show_message "$MSG_RUNNER_BRANCH_2"
-                read_input "$MSG_YOUR_CHOICE" RUNNER_BRANCH_CHOICE
-                case "${RUNNER_BRANCH_CHOICE:-1}" in
-                    1)
-                        runner_branch="main"
-                        break
-                        ;;
-                    2)
-                        runner_branch="dev"
-                        break
-                        ;;
-                    *)
-                        show_error "$MSG_INVALID_CHOICE. $MSG_REPEAT_INPUT"
-                        ;;
-                esac
-            done
+            [ -n "$RUNNER_BRANCH_CHOICE" ] || ui_choose RUNNER_BRANCH_CHOICE "$MSG_CHOOSE_RUNNER_BRANCH" 1 \
+                "$MSG_RUNNER_BRANCH_1" "$MSG_RUNNER_BRANCH_2"
+            case "$RUNNER_BRANCH_CHOICE" in
+                2) runner_branch="dev" ;;
+                *) runner_branch="main" ;;
+            esac
 
             local runner_base_url="https://raw.githubusercontent.com/mrvokintos/luci-app-singbox-ui/artifacts/${runner_branch}/${PKG_EXT}"
             local index_url="$runner_base_url/index.txt"
@@ -362,39 +314,22 @@ choose_install_version() {
                 break
             fi
 
-            local i=1
-            local file
-            for file in $runner_files; do
-                show_message "  [$i] $file"
-                i=$((i+1))
-            done
-
-            local selected_runner_file
-            while true; do
-                read_input "$MSG_YOUR_CHOICE" CHOICE
-                selected_runner_file=""
-                case "$CHOICE" in
-                    ''|*[!0-9]*) ;;
-                    *)
-                        if [ "$CHOICE" -ge 1 ] && [ "$CHOICE" -lt "$i" ]; then
-                            selected_runner_file=$(printf '%s\n' $runner_files | sed -n "${CHOICE}p")
-                        fi
-                        ;;
-                esac
-                case "$selected_runner_file" in
-                    ''|*[!A-Za-z0-9._+-]*)
-                        show_error "$MSG_INVALID_CHOICE. $MSG_REPEAT_INPUT"
-                        ;;
-                    *)
-                        DOWNLOAD_URL="$runner_base_url/$selected_runner_file"
-                        break
-                        ;;
-                esac
-            done
+            local selected_runner_file CHOICE
+            # shellcheck disable=SC2086
+            ui_choose CHOICE "$MSG_SELECT_RUNNER" 1 $runner_files
+            selected_runner_file=$(printf '%s\n' $runner_files | sed -n "${CHOICE}p")
+            case "$selected_runner_file" in
+                ''|*[!A-Za-z0-9._+-]*)
+                    show_error "$MSG_INVALID_CHOICE"
+                    exit 1
+                    ;;
+            esac
+            DOWNLOAD_URL="$runner_base_url/$selected_runner_file"
             break
             ;;
         *)
             show_error "$MSG_INVALID_CHOICE. $MSG_REPEAT_INPUT"
+            VERSION_CHOICE=""
             ;;
         esac
     done
@@ -424,10 +359,7 @@ install_singbox_ui() {
 # Ручной ввод конфигурации / Manual configuration input
 get_config() {
     local config_choice
-    show_message "$MSG_CONFIG_MENU"
-    show_message "$MSG_CONFIG_MENU_1"
-    show_message "$MSG_CONFIG_MENU_2"
-    read_input "$MSG_CONFIG_MENU_CHOICE" config_choice
+    ui_choose config_choice "$MSG_CONFIG_MENU" 1 "$MSG_CONFIG_MENU_1" "$MSG_CONFIG_MENU_2"
 
     case "${config_choice:-1}" in
         1)

@@ -33,6 +33,8 @@ After running script:
 2. Choose operation (`Install`, `Uninstall`, `Reinstall/Update`)
 3. When installing sing-box, choose `Original` (default), `Extended`, or the stripped-down `Clean` core
 
+Menus are navigated with `↑`/`↓` (or `j`/`k`) and `Enter`; a digit picks an item at once. Without a terminal, or with `UI_PLAIN=1`, the installer asks for item numbers instead.
+
 ## Quick Tips
 Clear old SSH key:
 ```bash

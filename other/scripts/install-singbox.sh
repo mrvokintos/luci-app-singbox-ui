@@ -23,7 +23,8 @@ cleanup_lib() {
 ensure_ui_library() {
     if [ -f "$UI_PATH" ]; then
         . "$UI_PATH"
-        return 0
+        # Старая копия без ui_choose — скачать заново / Stale copy without ui_choose: download again
+        command -v ui_choose >/dev/null 2>&1 && return 0
     fi
 
     mkdir -p "$SCRIPT_DIR/lib" 2>/dev/null
@@ -98,20 +99,7 @@ init_language() {
     local script_name="install-singbox.sh"
 
     if [ -z "$LANG" ]; then
-        while true; do
-            show_message "Выберите язык / Select language [1/2]:"
-            show_message "1. Русский (Russian)"
-            show_message "2. English (Английский)"
-            read_input " Ваш выбор / Your choice [1/2]: " LANG
-            case "$LANG" in
-                1|2)
-                    break
-                    ;;
-                *)
-                    show_error "Неверный выбор / Invalid choice"
-                    ;;
-            esac
-        done
+        ui_choose LANG "Язык / Language" 1 "Русский (Russian)" "English (Английский)"
     fi
 
     case ${LANG:-2} in
@@ -142,7 +130,6 @@ init_language() {
             MSG_INSTALL="1. Установка"
             MSG_DELETE="2. Удаление"
             MSG_REINSTALL_UPDATE="3. Переустановка/Обновление"
-            MSG_CHOICE=" Ваш выбор: "
             MSG_ALREADY_INSTALLED="Ошибка: Пакет уже установлен. Для переустановки выберите опцию 3"
             MSG_INSTALLING="Установка..."
             MSG_INSTALL_SUCCESS="Установка завершена"
@@ -176,8 +163,6 @@ init_language() {
             MSG_CLEAN_CHOOSE="Выберите вариант Clean ядра:"
             MSG_CLEAN_OPTION1="1) Origin Clean (по умолчанию)"
             MSG_CLEAN_OPTION2="2) Extended Clean"
-            MSG_CLEAN_PROMPT="Введите ваш выбор [1-2, Enter=1]:"
-            MSG_SINGBOX_PROMPT="Введите ваш выбор [1-3, Enter=1]:"
             MSG_SINGBOX_ARCH="Архитектура OpenWrt: %s, формат пакета: %s"
             MSG_SINGBOX_RELEASE="Последний релиз %s: %s"
             MSG_SINGBOX_ASSET_MISSING="В релизе %s нет пакета для архитектуры %s (%s)."
@@ -185,8 +170,9 @@ init_language() {
             MSG_INVALID_INPUT="Ошибка: Некорректный ввод"
             MSG_SINGBOX_DOWNLOADING="Загрузка '%s' в /tmp..."
             MSG_INVALID_INPUT="Ошибка: Некорректный ввод"
-            MSG_REPEAT_INPUT="Повторите ввод"
-            MSG_IPV6_DISABLE_PROMPT="Отключить IPv6? [1-Да, 2-Нет] (по умолчанию: 1 - Отключить): "
+            MSG_IPV6_DISABLE_PROMPT="Отключить IPv6?"
+            MSG_IPV6_YES="Да, отключить (по умолчанию)"
+            MSG_IPV6_NO="Нет, оставить"
             MSG_IPV6_SKIP="IPv6 оставлен без изменений"
             MSG_IPV6_RESTORE_CHECK="Проверка необходимости восстановления IPv6..."
             MSG_IPV6_RESTORE_SKIP="IPv6 не был отключён, восстановление не требуется"
@@ -218,7 +204,6 @@ init_language() {
             MSG_INSTALL="1. Install"
             MSG_DELETE="2. Delete"
             MSG_REINSTALL_UPDATE="3. Reinstall/Update"
-            MSG_CHOICE="Your choice: "
             MSG_ALREADY_INSTALLED="Error: Package already installed. For reinstall choose option 3"
             MSG_INSTALLING="Installing..."
             MSG_INSTALL_SUCCESS="Install completed"
@@ -252,8 +237,6 @@ init_language() {
             MSG_CLEAN_CHOOSE="Choose Clean core variant:"
             MSG_CLEAN_OPTION1="1) Origin Clean (default)"
             MSG_CLEAN_OPTION2="2) Extended Clean"
-            MSG_CLEAN_PROMPT="Enter your choice [1-2, Enter=1]:"
-            MSG_SINGBOX_PROMPT="Enter your choice [1-3, Enter=1]:"
             MSG_SINGBOX_ARCH="OpenWrt architecture: %s, package format: %s"
             MSG_SINGBOX_RELEASE="Latest %s release: %s"
             MSG_SINGBOX_ASSET_MISSING="Release %s has no package for architecture %s (%s)."
@@ -261,8 +244,9 @@ init_language() {
             MSG_INVALID_INPUT="Error: Invalid input"
             MSG_SINGBOX_DOWNLOADING="Downloading '%s' to /tmp..."
             MSG_INVALID_INPUT="Error: Invalid input"
-            MSG_REPEAT_INPUT="Repeat input"
-            MSG_IPV6_DISABLE_PROMPT="Disable IPv6? [1-Yes, 2-No] (default: 1 - Disable): "
+            MSG_IPV6_DISABLE_PROMPT="Disable IPv6?"
+            MSG_IPV6_YES="Yes, disable (default)"
+            MSG_IPV6_NO="No, keep it"
             MSG_IPV6_SKIP="IPv6 left unchanged"
             MSG_IPV6_RESTORE_CHECK="Checking if IPv6 restore is needed..."
             MSG_IPV6_RESTORE_SKIP="IPv6 was not disabled, restore not needed"
@@ -300,21 +284,7 @@ install_mode_deps() {
 # Выбор операции установки / Choose install operation
 choose_install_operation() {
     if [ -z "$OPERATION" ]; then
-        while true; do
-            show_message "$MSG_OPERATION"
-            show_message "$MSG_INSTALL"
-            show_message "$MSG_DELETE"
-            show_message "$MSG_REINSTALL_UPDATE"
-            read_input "$MSG_CHOICE" OPERATION
-            case "$OPERATION" in
-                1|2|3)
-                    break
-                    ;;
-                *)
-                    show_error "$MSG_INVALID_INPUT. $MSG_REPEAT_INPUT"
-                    ;;
-            esac
-        done
+        ui_choose OPERATION "$MSG_OPERATION" 1 "$MSG_INSTALL" "$MSG_DELETE" "$MSG_REINSTALL_UPDATE"
     fi
 }
 
@@ -464,20 +434,8 @@ install_release_core() {
 install_singbox() {
     show_progress "$MSG_INSTALL_SINGBOX"
     if [ -z "$SINGBOX_INSTALL_MODE" ]; then
-        while true; do
-            show_message ""
-            show_message "$MSG_SINGBOX_CHOOSE"
-            show_message "$MSG_SINGBOX_OPTION1"
-            show_message "$MSG_SINGBOX_OPTION2"
-            show_message "$MSG_SINGBOX_OPTION3"
-            show_message ""
-            read_input "$MSG_SINGBOX_PROMPT" SINGBOX_INSTALL_MODE
-            SINGBOX_INSTALL_MODE="${SINGBOX_INSTALL_MODE:-1}"
-            case "$SINGBOX_INSTALL_MODE" in
-                1|2|3) break ;;
-                *) show_error "$MSG_INVALID_INPUT. $MSG_REPEAT_INPUT" ;;
-            esac
-        done
+        ui_choose SINGBOX_INSTALL_MODE "$MSG_SINGBOX_CHOOSE" 1 \
+            "$MSG_SINGBOX_OPTION1" "$MSG_SINGBOX_OPTION2" "$MSG_SINGBOX_OPTION3"
     fi
 
     case "$SINGBOX_INSTALL_MODE" in
@@ -489,19 +447,7 @@ install_singbox() {
             ;;
         3)
             local clean_choice=""
-            while true; do
-                show_message ""
-                show_message "$MSG_CLEAN_CHOOSE"
-                show_message "$MSG_CLEAN_OPTION1"
-                show_message "$MSG_CLEAN_OPTION2"
-                show_message ""
-                read_input "$MSG_CLEAN_PROMPT" clean_choice
-                clean_choice="${clean_choice:-1}"
-                case "$clean_choice" in
-                    1|2) break ;;
-                    *) show_error "$MSG_INVALID_INPUT. $MSG_REPEAT_INPUT" ;;
-                esac
-            done
+            ui_choose clean_choice "$MSG_CLEAN_CHOOSE" 1 "$MSG_CLEAN_OPTION1" "$MSG_CLEAN_OPTION2"
 
             if [ "$clean_choice" = "1" ]; then
                 install_release_core "mrvokintos/sing-box-clean" "Origin Clean" "sing-box" "latest"
@@ -582,25 +528,13 @@ restore_ipv6() {
 
 # Спросить пользователя про отключение IPv6 (дефолт — отключить) / Ask user about IPv6 disable (default — disable)
 maybe_disable_ipv6() {
-    while true; do
-        read_input "$MSG_IPV6_DISABLE_PROMPT" IPV6_CHOICE
-        if [ -z "$IPV6_CHOICE" ]; then
-            IPV6_CHOICE="1"
-        fi
-        case "$IPV6_CHOICE" in
-            1)
-                disabled_ipv6
-                break
-                ;;
-            2)
-                show_progress "$MSG_IPV6_SKIP"
-                break
-                ;;
-            *)
-                show_error "$MSG_INVALID_INPUT. $MSG_REPEAT_INPUT"
-                ;;
-        esac
-    done
+    if [ -z "$IPV6_CHOICE" ]; then
+        ui_choose IPV6_CHOICE "$MSG_IPV6_DISABLE_PROMPT" 1 "$MSG_IPV6_YES" "$MSG_IPV6_NO"
+    fi
+    case "$IPV6_CHOICE" in
+        2) show_progress "$MSG_IPV6_SKIP" ;;
+        *) disabled_ipv6 ;;
+    esac
 }
 
 # Восстановить IPv6 только если он был отключён / Restore IPv6 only if it was disabled
