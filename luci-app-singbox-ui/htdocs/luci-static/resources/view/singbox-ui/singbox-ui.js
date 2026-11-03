@@ -162,6 +162,13 @@ async function service(action){
 }
 
 async function running(){try{const result=await fs.exec(SERVICE,['status']),out=String(result.stdout||'').trim();if(/^running\b/im.test(out))return true;return(result.code|0)===0&&!/not running|inactive|stopped/i.test(out)}catch(_e){return false}}
+// procd returns from stop/start before sing-box has actually exited or come up
+// (tearing down TUN takes a second or two), so wait for the expected state.
+async function settle(action,timeout=8000){
+	const want=action!=='stop',until=Date.now()+timeout;
+	if(action==='restart')await new Promise(resolve=>setTimeout(resolve,1000));
+	for(;;){const on=await running();if(on===want||Date.now()>until)return on;await new Promise(resolve=>setTimeout(resolve,500))}
+}
 
 const DEFAULT={
 	log:{level:'info',timestamp:true},
@@ -389,7 +396,7 @@ function init(root,initialConfigs,initialTemplates,initialTemplateName,initialTe
 		root.querySelectorAll('[data-panel]').forEach(item=>item.classList.toggle('active',item.dataset.panel===button.dataset.tab));
 		if(button.dataset.tab==='logs')logs();
 	});
-	root.querySelectorAll('[data-service]').forEach(button=>button.onclick=()=>busy(button,async()=>{try{await serial(()=>service(button.dataset.service));await status()}catch(error){note('error',_('Operation failed')+': '+error.message)}}));
+	root.querySelectorAll('[data-service]').forEach(button=>button.onclick=()=>busy(button,async()=>{try{const action=button.dataset.service;await serial(async()=>{await service(action);await settle(action)});await status()}catch(error){note('error',_('Operation failed')+': '+error.message)}}));
 	root.querySelector('#refresh').onclick=event=>busy(event.currentTarget,reloadConfigs);
 	root.querySelector('#back').onclick=()=>closeConfig(false);
 	root.querySelector('#new').onclick=async()=>{
