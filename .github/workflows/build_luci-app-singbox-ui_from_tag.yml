@@ -100,7 +100,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pkg_type: [ipk, apk]
+        include:
+          # Official OpenWrt SDK images: https://hub.docker.com/r/openwrt/sdk
+          - pkg_type: ipk
+            sdk_tag: x86-64-24.10.8
+          - pkg_type: apk
+            sdk_tag: x86-64-25.12.6
 
     steps:
       - name: Checkout Synced Commit
@@ -122,31 +127,26 @@ jobs:
           fi
           sed -i "s/^PKG_VERSION:=.*$/PKG_VERSION:=${PACKAGE_VERSION}/" luci-app-singbox-ui/Makefile
 
-      - name: Build Docker Image (${{ matrix.pkg_type }})
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build package with OpenWrt SDK ${{ matrix.sdk_tag }}
         uses: docker/build-push-action@v6.18.0
         with:
           context: .
-          file: Dockerfile-${{ matrix.pkg_type }}
-          tags: singbox-ui-${{ matrix.pkg_type }}:ci
+          file: Dockerfile
+          build-args: SDK_TAG=${{ matrix.sdk_tag }}
+          outputs: type=local,dest=./bin-${{ matrix.pkg_type }}
 
-      - name: Create Docker Container
-        run: docker create --name singbox-ui-${{ matrix.pkg_type }} singbox-ui-${{ matrix.pkg_type }}:ci
-
-      - name: Copy Package From Docker Container
+      - name: Collect built package
         shell: bash
+        env:
+          EXT: ${{ matrix.pkg_type }}
         run: |
           set -euo pipefail
           mkdir -p ./pkg-out
-          docker cp singbox-ui-${{ matrix.pkg_type }}:/builder/bin/packages/x86_64/luci/. ./bin-${{ matrix.pkg_type }}/
-          if [ "${{ matrix.pkg_type }}" = "ipk" ]; then
-            cp ./bin-${{ matrix.pkg_type }}/luci-app-singbox-ui*.ipk ./pkg-out/luci-app-singbox-ui.ipk
-          else
-            cp ./bin-${{ matrix.pkg_type }}/luci-app-singbox-ui*.apk ./pkg-out/luci-app-singbox-ui.apk
-          fi
-
-      - name: Remove Docker Container
-        if: always()
-        run: docker rm -f singbox-ui-${{ matrix.pkg_type }} || true
+          ls -l "./bin-$EXT"
+          cp ./bin-"$EXT"/luci-app-singbox-ui*."$EXT" "./pkg-out/luci-app-singbox-ui.$EXT"
 
       - name: Upload Built Package
         uses: actions/upload-artifact@v4.6.2

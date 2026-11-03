@@ -31,7 +31,7 @@
 | `other/scripts/lib/ui.sh` | Общие сообщения, ввод и прогресс |
 | `other/scripts/lib/pkg.sh` | APK/IPK, архитектура и операции пакетов |
 | `install.sh` | Bootstrap, скачивающий актуальные скрипты из `$BRANCH` |
-| `Dockerfile-ipk`, `Dockerfile-apk` | OpenWrt SDK-сборки |
+| `Dockerfile` | Сборка IPK/APK в официальном OpenWrt SDK (`openwrt/sdk`) |
 | `.github/workflows/build_luci-app-singbox-ui_from_tag.yml` | Ручная сборка и публикация GitHub Release (Release/Pre-release) |
 | `.github/workflows/build_luci-app-singbox-ui_from_pr.yml` | Автосборка артефактов при коммите/PR |
 | `tests/share-link.test.js` | Тесты parser |
@@ -148,19 +148,25 @@ cleanup <safe-prefix>
 
 ## Сборка и релизы
 
-Локальная SDK-сборка:
+Пакеты собираются в официальном образе OpenWrt SDK ([`openwrt/sdk`](https://hub.docker.com/r/openwrt/sdk)). Версия SDK задаётся аргументом `SDK_TAG`: SDK 24.10 собирает `.ipk`, SDK 25.12 — `.apk`. Пакет `noarch`, поэтому хватает x86-64 SDK. Готовые файлы выгружаются из стадии `artifact` в каталог:
 
 ```sh
-docker build -f Dockerfile-ipk -t singbox-ui-ipk:local .
-docker build -f Dockerfile-apk -t singbox-ui-apk:local .
+docker build --build-arg SDK_TAG=x86-64-24.10.8 --output type=local,dest=./bin-ipk .
+docker build --build-arg SDK_TAG=x86-64-25.12.6 --output type=local,dest=./bin-apk .
 ```
 
-Внутри Dockerfile выполняется:
+Внутри Dockerfile подключается только фид `luci` (там `luci.mk` и host-утилиты jsmin/po2lmo/csstidy), затем:
 
 ```sh
-make defconfig
-make package/luci-app-singbox-ui/compile V=s -j4
+make package/feeds/luci/luci-base/host/compile package/feeds/luci/csstidy/host/compile
+make package/luci-app-singbox-ui/compile NO_DEPS=1 V=s
 ```
+
+`NO_DEPS=1` нужен, потому что целевые зависимости `luci-base` (ucode, rpcd и т.д.) находятся в других фидах и для noarch-пакета не нужны. `/builder` в образе SDK объявлен как `VOLUME`, поэтому пакеты забираются через `--output`, а не через `docker cp`.
+
+Пакеты из SDK не подписаны: подпись и индексы (`APKINDEX`, `Packages.sig`) добавляет `openwrt-repo` своим ключом. При ручной установке apk-пакета нужен `--allow-untrusted`.
+
+Для автосборок `PKG_RELEASE` подменяется на UTC-метку `YYYYmmddHHMM`: apk допускает в релизе только целое число (`-rN`), а хеш коммита попадает в имя файла артефакта.
 
 Release workflow (`build_luci-app-singbox-ui_from_tag.yml`) запускается вручную через `workflow_dispatch` с выбором версии тега и типа релиза (`prerelease` или `release`). Он извлекает версию без `v`, синхронизирует Makefile, собирает IPK и APK, а затем публикует оба файла в GitHub Release с выбранным флагом.
 
