@@ -305,6 +305,12 @@ artifact_list() {
         grep -E '^[A-Za-z0-9._+-]+$'
 }
 
+# Новые сверху: luci-app-singbox-ui-<branch>-<sha>-<YYYYmmdd>-<HHMM>.<ext>
+# Newest first, by the date and time fields
+artifact_sort() {
+    awk -F- '{ print $(NF - 1) $NF "\t" $0 }' | sort -r | cut -f2
+}
+
 artifact_install() {
     local branch="$1" file="$2" path="/tmp/luci-app-singbox-ui.$PKG_EXT"
     show_progress "$(printf "$MSG_ARTIFACT_INSTALL" "$file")"
@@ -377,8 +383,7 @@ tui_pick_artifact() {
         tui_enter
         return 0
     fi
-    # Новые сборки сверху / Newest builds first
-    files=$(printf '%s\n' "$files" | sort -r)
+    files=$(printf '%s\n' "$files" | artifact_sort)
     i=0
     # shellcheck disable=SC2086
     TUI_HEADING="$MSG_ARTIFACT_PICK ($branch)"
@@ -509,7 +514,7 @@ run_plain() {
             ui_choose r "$MSG_ARTIFACT_BRANCH" 2 main dev
             local branch=main files
             [ "$r" = 2 ] && branch=dev
-            files=$(artifact_list "$branch" | sort -r)
+            files=$(artifact_list "$branch" | artifact_sort)
             [ -n "$files" ] || { show_error "$MSG_ARTIFACT_INDEX_FAIL"; return 1; }
             # shellcheck disable=SC2086
             ui_choose r "$MSG_ARTIFACT_PICK" 1 $files

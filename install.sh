@@ -10,7 +10,8 @@
 #   other variables are passed on to singbox-ui-setup
 
 REPO_BASE="${REPO_BASE:-https://openwrt.mrvokintos.ru}"
-GITHUB_LATEST="https://github.com/mrvokintos/luci-app-singbox-ui/releases/latest/download"
+GITHUB_REPO="mrvokintos/luci-app-singbox-ui"
+ARTIFACTS_URL="https://raw.githubusercontent.com/$GITHUB_REPO/artifacts"
 SETUP=/usr/sbin/singbox-ui-setup
 
 say() { printf '  \033[38;5;85m▸\033[0m %s\n' "$*"; }
@@ -88,23 +89,57 @@ add_repo() {
     fi
 }
 
+# Только панель: без --upgrade, чтобы не обновлять заодно её зависимости
+# (luci-base и т.п.). Panel only: no --upgrade, so its dependencies are not
+# upgraded along the way.
 install_from_repo() {
     if [ "$PM" = apk ]; then
-        retry apk update >/dev/null && apk add --upgrade luci-app-singbox-ui
+        retry apk update >/dev/null || return 1
+        if apk info -e luci-app-singbox-ui >/dev/null 2>&1; then
+            apk upgrade luci-app-singbox-ui
+        else
+            apk add luci-app-singbox-ui
+        fi
     else
-        retry opkg update >/dev/null && opkg install luci-app-singbox-ui
+        retry opkg update >/dev/null || return 1
+        opkg install luci-app-singbox-ui
     fi
 }
 
+# URL пакета вне репозитория: dev/git — свежая сборка из артефактов CI,
+# stable/beta — новый релиз на GitHub (если обычного нет, то пре-релиз).
+# Package URL outside the repo: dev/git take the newest CI artifact,
+# stable/beta the newest GitHub release (a pre-release if there is no release).
+github_package_url() {
+    local branch name list
+    case "$CHANNEL" in
+        dev|git)
+            [ "$CHANNEL" = dev ] && branch=dev || branch=main
+            list=$(fetch "$ARTIFACTS_URL/$branch/$EXT/index.txt" - 2>/dev/null) || return 1
+            # luci-app-singbox-ui-<branch>-<sha>-<YYYYmmdd>-<HHMM>.<ext>: по дате / by date
+            name=$(printf '%s\n' "$list" | grep -E '^[A-Za-z0-9._+-]+$' |
+                awk -F- '{ print $(NF - 1) $NF "\t" $0 }' | sort | tail -n 1 | cut -f2)
+            [ -n "$name" ] && echo "$ARTIFACTS_URL/$branch/$EXT/$name"
+            ;;
+        *)
+            fetch "https://api.github.com/repos/$GITHUB_REPO/releases" - 2>/dev/null |
+                grep -o "https://[^\"]*/luci-app-singbox-ui\.$EXT" | head -n 1
+            ;;
+    esac
+}
+
 install_from_github() {
-    local file="/tmp/luci-app-singbox-ui.$EXT"
-    fetch "$GITHUB_LATEST/luci-app-singbox-ui.$EXT" "$file" || return 1
+    local file="/tmp/luci-app-singbox-ui.$EXT" url rc
+    url=$(github_package_url)
+    [ -n "$url" ] || return 1
+    say "$url"
+    fetch "$url" "$file" || { rm -f "$file"; return 1; }
     if [ "$PM" = apk ]; then
         apk add --allow-untrusted "$file"
     else
         opkg install "$file"
     fi
-    local rc=$?
+    rc=$?
     rm -f "$file"
     return "$rc"
 }
@@ -116,13 +151,13 @@ say "Repository / Репозиторий: $FEED"
 if add_repo && install_from_repo; then
     :
 else
-    warn "Repository is not available, using the GitHub release / Репозиторий недоступен, ставлю релиз с GitHub"
+    warn "Repository is not available, using GitHub / Репозиторий недоступен, ставлю с GitHub"
     install_from_github || fail "Cannot install luci-app-singbox-ui / Не удалось установить luci-app-singbox-ui"
 fi
 
 if [ ! -x "$SETUP" ]; then
-    warn "Channel $CHANNEL has a panel without singbox-ui-setup, trying the GitHub release"
-    warn "В канале $CHANNEL панель без singbox-ui-setup, пробую релиз с GitHub"
+    warn "Channel $CHANNEL has a panel without singbox-ui-setup, trying GitHub"
+    warn "В канале $CHANNEL панель без singbox-ui-setup, пробую GitHub"
     install_from_github
 fi
 [ -x "$SETUP" ] || fail "singbox-ui-setup is missing in this build; try CHANNEL=dev / в этой сборке нет singbox-ui-setup, попробуйте CHANNEL=dev"
