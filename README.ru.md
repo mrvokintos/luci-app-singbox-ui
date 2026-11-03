@@ -47,7 +47,6 @@ ssh root@192.168.1.1
 
 ## Шаблоны конфигурации
 - [openwrt-template](https://raw.githubusercontent.com/mrvokintos/luci-app-singbox-ui/main/other/file/openwrt-template.json)
-- [openwrt-template-tproxy](https://raw.githubusercontent.com/mrvokintos/luci-app-singbox-ui/main/other/file/openwrt-template-tproxy.json)
 - [Sing-Box Configuration](https://sing-box.sagernet.org/configuration/)
 
 ## Вклад

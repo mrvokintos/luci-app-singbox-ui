@@ -48,7 +48,6 @@ If LuCI page is not visible after install, do a hard refresh.
 
 ## Config Templates
 - [openwrt-template](https://raw.githubusercontent.com/mrvokintos/luci-app-singbox-ui/main/other/file/openwrt-template.json)
-- [openwrt-template-tproxy](https://raw.githubusercontent.com/mrvokintos/luci-app-singbox-ui/main/other/file/openwrt-template-tproxy.json)
 - [Sing-Box Configuration](https://sing-box.sagernet.org/configuration/)
 
 ## Contributing

@@ -1,6 +1,7 @@
 #!/bin/sh
 # Usage: singbox-ui-mode-switch <action>
-# Actions: enable-tun | disable-tun | enable-tproxy | disable-tproxy
+# Actions: enable-tun | disable-tun | disable-tproxy
+# TPROXY mode was removed; disable-tproxy only cleans up older installs.
 
 set -e
 ACTION="${1:-unknown}"
@@ -95,67 +96,11 @@ remove_firewall_tun() {
     uci commit firewall
 }
 
-# ── nft rules ────────────────────────────────────────────────────────────────
-
-install_nft_rule() {
-    mkdir -p /etc/sing-box
-    cat > "$NFT_RULE_FILE" << 'NFTEOF'
-table ip singbox {}
-delete table ip singbox
-
-define PROXY_FWMARK = 1
-define BYPASS_MARK = 2
-define RESERVED_IP = {
-    0.0.0.0/8,
-    10.0.0.0/8,
-    100.64.0.0/10,
-    127.0.0.0/8,
-    169.254.0.0/16,
-    172.16.0.0/12,
-    192.168.0.0/16,
-    192.0.0.0/24,
-    192.0.2.0/24,
-    198.18.0.0/15,
-    198.51.100.0/24,
-    203.0.113.0/24,
-    224.0.0.0/4,
-    240.0.0.0/4,
-    255.255.255.255/32
-}
-
-table ip singbox {
-    chain prerouting {
-        type filter hook prerouting priority mangle; policy accept;
-        fib daddr type local return
-        ip daddr $RESERVED_IP return
-        meta mark $BYPASS_MARK return
-        ip protocol tcp tproxy to 127.0.0.1:2080 meta mark set $PROXY_FWMARK
-        ip protocol udp tproxy to 127.0.0.1:2080 meta mark set $PROXY_FWMARK
-    }
-}
-NFTEOF
-    nft -f "$NFT_RULE_FILE"
-}
+# ── legacy tproxy cleanup ───────────────────────────────────────────────────
 
 uninstall_nft_rule() {
     nft delete table ip singbox 2>/dev/null || true
     rm -f "$NFT_RULE_FILE"
-}
-
-flush_tproxy_table() {
-    nft delete table ip singbox 2>/dev/null || true
-}
-
-# ── tproxy firewall include ───────────────────────────────────────────────────
-
-ensure_tproxy_firewall_include() {
-    uci set firewall.singbox_tproxy=include
-    uci set firewall.singbox_tproxy.type="nftables"
-    uci set firewall.singbox_tproxy.path="$NFT_RULE_FILE"
-    uci set firewall.singbox_tproxy.position="ruleset-prepend"
-    uci -q delete firewall.singbox_tproxy.chain || true
-    uci set firewall.singbox_tproxy.enabled="1"
-    uci commit firewall
 }
 
 remove_tproxy_firewall_include() {
@@ -163,48 +108,12 @@ remove_tproxy_firewall_include() {
     uci commit firewall
 }
 
-# ── sysctl for tproxy ──────────────────────────────────────────────────────
-
-install_sysctl_config() {
-    for iface in /proc/sys/net/ipv4/conf/*/route_localnet; do
-        echo 1 > "$iface" 2>/dev/null || true
-    done
-
-    mkdir -p /etc/sysctl.d
-    cat > "$SYSCTL_CONF_FILE" << 'SYSCTLEOF'
-net.ipv4.conf.all.route_localnet=1
-net.ipv4.conf.default.route_localnet=1
-SYSCTLEOF
-    sysctl -p "$SYSCTL_CONF_FILE" >/dev/null 2>&1 || true
-}
-
 uninstall_sysctl_config() {
     for iface in /proc/sys/net/ipv4/conf/*/route_localnet; do
-        echo 0 > "$iface" 2>/dev/null || true
+        { echo 0 > "$iface"; } 2>/dev/null || true
     done
 
     rm -f "$SYSCTL_CONF_FILE"
-}
-
-# ── policy routing for tproxy ────────────────────────────────────────────────
-
-setup_tproxy_routing() {
-    ip rule add fwmark 1 table 100 2>/dev/null || true
-    ip route add local 0.0.0.0/0 dev lo table 100 2>/dev/null || true
-
-    uci set network.singbox_tproxy_rule=rule
-    uci set network.singbox_tproxy_rule.mark='0x1'
-    uci set network.singbox_tproxy_rule.lookup='100'
-    uci set network.singbox_tproxy_rule.priority='100'
-
-    uci set network.singbox_tproxy_route=route
-    uci set network.singbox_tproxy_route.interface='loopback'
-    uci set network.singbox_tproxy_route.target='0.0.0.0'
-    uci set network.singbox_tproxy_route.netmask='0.0.0.0'
-    uci set network.singbox_tproxy_route.table='100'
-    uci set network.singbox_tproxy_route.type='local'
-
-    uci commit network
 }
 
 cleanup_tproxy_routing() {
@@ -255,22 +164,6 @@ case "$1" in
         done_ "TUN mode disabled"
         echo "ok"
         ;;
-    enable-tproxy)
-        step "Setting up policy routing..."
-        setup_tproxy_routing
-        step "Installing sysctl config..."
-        install_sysctl_config
-        step "Installing nftables rule..."
-        install_nft_rule
-        step "Configuring firewall include..."
-        ensure_tproxy_firewall_include
-        step "Flushing tproxy table for firewall reload..."
-        flush_tproxy_table
-        step "Reloading firewall..."
-        reload_firewall
-        done_ "TPROXY mode enabled"
-        echo "ok"
-        ;;
     disable-tproxy)
         step "Removing firewall include..."
         remove_tproxy_firewall_include
@@ -286,7 +179,7 @@ case "$1" in
         echo "ok"
         ;;
     *)
-        echo "Usage: $0 {enable-tun|disable-tun|enable-tproxy|disable-tproxy}" >&2
+        echo "Usage: $0 {enable-tun|disable-tun|disable-tproxy}" >&2
         exit 1
         ;;
 esac

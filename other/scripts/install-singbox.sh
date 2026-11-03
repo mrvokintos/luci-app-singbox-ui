@@ -156,19 +156,8 @@ init_language() {
             MSG_NETWORK_CHECK="Проверка доступности сети..."
             MSG_NETWORK_SUCCESS="Сеть доступна (через %s, за %s сек)"
             MSG_NETWORK_ERROR="Сеть не доступна после %s сек!"
-            MSG_MODE="Выберите режим установки:"
-            MSG_TUN="1. TUN"
-            MSG_TPROXY="2. TPROXY"
-            MSG_MODE_CHOICE="Ваш выбор: "
-            MSG_INSTALLING_TPROXY_MODE="Установка TPROXY режима..."
             MSG_UNINSTALLING_TPROXY_MODE="Удаление TPROXY режима..."
-            MSG_TPROXY_NFT_INSTALL="Установка nftables (nft) для TPROXY..."
-            MSG_TPROXY_NFT_INSTALLED="nftables успешно установлен"
-            MSG_TPROXY_NFT_ERROR="Не удалось установить nftables"
-            MSG_TPROXY_FW4_REQUIRED="Для TPROXY требуется firewall4 (fw4). Обновите OpenWrt и установите firewall4."
-            MSG_PKG_INSTALLING="Установка пакета: %s..."
-            MSG_PKG_INSTALLED="Пакет установлен: %s"
-            MSG_PKG_INSTALL_ERROR="Не удалось установить пакет: %s"
+            MSG_TPROXY_REMOVED="Режим TPROXY больше не поддерживается, используется TUN. Выборочную маршрутизацию настраивайте правилами route в конфиге sing-box."
             MSG_INSTALLING_TUN_MODE="Установка TUN режима..."
             MSG_UNINSTALLING_TUN_MODE="Удаление TUN режима..."
             MSG_TUN_DEPS_INSTALL="Установка зависимостей для TUN режима..."
@@ -243,19 +232,8 @@ init_language() {
             MSG_NETWORK_CHECK="Checking network availability..."
             MSG_NETWORK_SUCCESS="Network available (via %s, in %s sec)"
             MSG_NETWORK_ERROR="Network not available after %s sec!"
-            MSG_MODE="Select mode:"
-            MSG_TUN="1. TUN"
-            MSG_TPROXY="2. TPROXY"
-            MSG_MODE_CHOICE="Your choice: "
-            MSG_INSTALLING_TPROXY_MODE="Installing TPROXY mode..."
             MSG_UNINSTALLING_TPROXY_MODE="Uninstalling TPROXY mode..."
-            MSG_TPROXY_NFT_INSTALL="Installing nftables (nft) for TPROXY..."
-            MSG_TPROXY_NFT_INSTALLED="nftables installed successfully"
-            MSG_TPROXY_NFT_ERROR="Failed to install nftables"
-            MSG_TPROXY_FW4_REQUIRED="TPROXY requires firewall4 (fw4). Please upgrade OpenWrt and install firewall4."
-            MSG_PKG_INSTALLING="Installing package: %s..."
-            MSG_PKG_INSTALLED="Package installed: %s"
-            MSG_PKG_INSTALL_ERROR="Failed to install package: %s"
+            MSG_TPROXY_REMOVED="TPROXY mode is no longer supported, TUN is used. Configure selective routing with route rules in the sing-box config."
             MSG_INSTALLING_TUN_MODE="Installing TUN mode..."
             MSG_UNINSTALLING_TUN_MODE="Uninstalling TUN mode..."
             MSG_TUN_DEPS_INSTALL="Installing TUN mode dependencies..."
@@ -305,72 +283,18 @@ update_pkgs() {
     fi
 }
 
-ensure_nft_available() {
-    if command -v nft >/dev/null 2>&1; then
-        return 0
-    fi
-    if [ -x /usr/sbin/nft ] || [ -x /sbin/nft ]; then
-        return 0
-    fi
-    show_progress "$MSG_TPROXY_NFT_INSTALL"
-    if pkg_install nftables; then
-        show_success "$MSG_TPROXY_NFT_INSTALLED"
-        return 0
-    fi
-    show_error "$MSG_TPROXY_NFT_ERROR"
-    exit 1
-}
-
-ensure_fw4_available() {
-    if command -v fw4 >/dev/null 2>&1 || [ -x /sbin/fw4 ]; then
-        return 0
-    fi
-    show_error "$MSG_TPROXY_FW4_REQUIRED"
-    exit 1
-}
-
-ensure_pkg() {
-    local pkg="$1"
-    if pkg_is_installed "$pkg"; then
-        return 0
-    fi
-    show_progress "$(printf "$MSG_PKG_INSTALLING" "$pkg")"
-    if pkg_install "$pkg"; then
-        show_success "$(printf "$MSG_PKG_INSTALLED" "$pkg")"
-        return 0
-    fi
-    show_error "$(printf "$MSG_PKG_INSTALL_ERROR" "$pkg")"
-    exit 1
-}
-
-ensure_tproxy_deps() {
-    ensure_fw4_available
-    ensure_nft_available
-    ensure_pkg ip-full
-    ensure_pkg kmod-nft-tproxy
-    ensure_pkg kmod-nft-socket
-    ensure_pkg kmod-inet-diag
-}
-
 install_mode_deps() {
-    case $MODE in
-        1)
-            show_progress "$MSG_TUN_DEPS_INSTALL"
-            if pkg_is_installed "kmod-tun"; then
-                show_success "$MSG_TUN_DEPS_ALREADY"
-                return 0
-            fi
-            if pkg_install kmod-tun; then
-                show_success "$MSG_TUN_DEPS_INSTALLED"
-            else
-                show_error "$MSG_TUN_DEPS_ERROR"
-                exit 1
-            fi
-            ;;
-        2)
-            ensure_tproxy_deps
-            ;;
-    esac
+    show_progress "$MSG_TUN_DEPS_INSTALL"
+    if pkg_is_installed "kmod-tun"; then
+        show_success "$MSG_TUN_DEPS_ALREADY"
+        return 0
+    fi
+    if pkg_install kmod-tun; then
+        show_success "$MSG_TUN_DEPS_INSTALLED"
+    else
+        show_error "$MSG_TUN_DEPS_ERROR"
+        exit 1
+    fi
 }
 
 # Выбор операции установки / Choose install operation
@@ -720,22 +644,29 @@ uninstall_existing_files(){
 }
 
 # Выбор режима / Choose mode
+# Поддерживается только TUN (1). TPROXY (2) удалён.
+# Only TUN (1) is supported. TPROXY (2) was removed.
 choose_mode() {
-    if [ -z "$MODE" ]; then
-        while true; do
-            show_message "$MSG_MODE"
-            show_message "$MSG_TUN"
-            show_message "$MSG_TPROXY"
-            read_input "$MSG_MODE_CHOICE" MODE
-            case "$MODE" in
-                1|2)
-                    break
-                    ;;
-                *)
-                    show_error "$MSG_INVALID_MODE. $MSG_REPEAT_INPUT"
-                    ;;
-            esac
-        done
+    case "${MODE:-1}" in
+        1)
+            MODE=1
+            ;;
+        2)
+            show_progress "$MSG_TPROXY_REMOVED"
+            MODE=1
+            ;;
+        *)
+            show_error "$MSG_INVALID_MODE"
+            exit 1
+            ;;
+    esac
+}
+
+# Удаление остатков TPROXY от старых версий / Remove TPROXY leftovers from older versions
+cleanup_legacy_tproxy() {
+    if [ -f /etc/sing-box/tproxy.nft ] || uci -q get firewall.singbox_tproxy >/dev/null; then
+        show_progress "$MSG_TPROXY_REMOVED"
+        uninstalled_tproxy_mode
     fi
 }
 
@@ -766,14 +697,6 @@ uninstalled_tun_mode() {
     network_check
 }
 
-# Установка tproxy mode / Install tproxy mode
-installed_tproxy_mode() {
-    show_progress "$MSG_INSTALLING_TPROXY_MODE"
-    enable_singbox
-    "$MODE_SWITCH" enable-tproxy
-    network_check
-}
-
 # Удаление tproxy mode / Uninstall tproxy mode
 uninstalled_tproxy_mode() {
     show_progress "$MSG_UNINSTALLING_TPROXY_MODE"
@@ -785,9 +708,6 @@ perform_install_mode() {
     case $MODE in
         1)
             installed_tun_mode
-            ;;
-        2)
-            installed_tproxy_mode
             ;;
         *)
             show_error "$MSG_INVALID_MODE"
@@ -815,6 +735,7 @@ perform_uninstall_mode() {
 install() {
     show_progress "$MSG_INSTALLING"
     choose_mode
+    cleanup_legacy_tproxy
     install_mode_deps
     install_singbox
     configure_singbox_service
