@@ -78,7 +78,11 @@ repo_channel_valid "$S_CHANNEL" || S_CHANNEL=stable
 
 S_AUTOUPDATE="${AUTOUPDATE:-}"
 if ! autoupdate_mode_valid "$S_AUTOUPDATE"; then
-    if [ -n "$REPO_CHANNEL" ]; then S_AUTOUPDATE=$(autoupdate_current); else S_AUTOUPDATE=ui; fi
+    # Первая настройка (выбор ещё не сохранён) — только панель; дальше — как в crontab.
+    # install.sh уже подключает репозиторий, поэтому смотреть на фиды нельзя.
+    # First setup (nothing saved yet): panel only; later: whatever crontab has.
+    # install.sh already adds the repo, so the feeds cannot tell.
+    if [ -n "$(saved autoupdate)" ]; then S_AUTOUPDATE=$(autoupdate_current); else S_AUTOUPDATE=ui; fi
 fi
 
 S_IPV6="${IPV6:-}"
