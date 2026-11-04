@@ -1,4 +1,5 @@
 luci-app-singbox-ui-dev-00d3924-20261103-2338.apk
+luci-app-singbox-ui-dev-0786385-20261104-1149.apk
 luci-app-singbox-ui-dev-607d87f-20261103-2052.apk
 luci-app-singbox-ui-dev-643dab5-20261103-1829.apk
 luci-app-singbox-ui-dev-6ba0af5-20261103-2349.apk
