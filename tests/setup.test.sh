@@ -1,5 +1,5 @@
 #!/bin/sh
-# Модули singbox-ui-setup на фейковом корне / singbox-ui-setup modules on a fake root.
+# Модули singbox-ui на фейковом корне / singbox-ui modules on a fake root.
 # Запуск / run: sh tests/setup.test.sh (работает и в busybox ash на роутере)
 set -eu
 

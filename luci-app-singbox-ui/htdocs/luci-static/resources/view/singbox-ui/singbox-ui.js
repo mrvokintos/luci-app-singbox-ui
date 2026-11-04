@@ -288,7 +288,7 @@ function init(root,initialConfigs,initialTemplates,initialTemplateName,initialTe
 		}
 		const element=root.querySelector('#setupBanner');
 		if(!reasons.length){element.hidden=true;return}
-		element.innerHTML='<strong>'+h(_('Initial setup is not finished'))+'</strong>: '+h(reasons.join(', '))+'. '+h(_('To set up the core, service, TUN and auto-update, run over SSH:'))+' <code>singbox-ui-setup</code>';
+		element.innerHTML='<strong>'+h(_('Initial setup is not finished'))+'</strong>: '+h(reasons.join(', '))+'. '+h(_('To set up the core, service, TUN and auto-update, run over SSH:'))+' <code>singbox-ui</code>';
 		element.hidden=false;
 	}
 	async function binaryVersion(){const element=root.querySelector('#singboxVersion');try{const result=await fs.exec(BIN,['version']);if((result.code|0)!==0&&!result.stdout)throw new Error('missing');const text=cleanError(result.stdout||result.stderr),line=text.split(/\r?\n/).map(s=>s.trim()).find(Boolean)||'',match=line.match(/(?:^|\s)(?:sing-box(?:-extended)?\s+version\s+v?([0-9][\w.+-]*|unknown)|sing-box(?:-extended)?\s+v?([0-9][\w.+-]*)|version\s+v?([0-9][\w.+-]*|unknown))/i),v=match&&(match[1]||match[2]||match[3]);element.textContent=v?'sing-box '+v:'sing-box —'}catch(_e){element.textContent='sing-box —'}}

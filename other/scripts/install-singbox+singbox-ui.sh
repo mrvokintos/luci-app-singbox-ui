@@ -1,7 +1,7 @@
 #!/bin/sh
-# Устаревший скрипт: установка теперь идёт через install.sh и singbox-ui-setup.
+# Устаревший скрипт: установка теперь идёт через install.sh и singbox-ui.
 # Скрипт оставлен для старых ссылок и передаёт все переменные дальше.
-# Deprecated: installation now goes through install.sh and singbox-ui-setup.
+# Deprecated: installation now goes through install.sh and singbox-ui.
 # Kept for old links; all variables are passed on.
 BRANCH="${BRANCH:-main}"
 url="https://raw.githubusercontent.com/mrvokintos/luci-app-singbox-ui/$BRANCH/install.sh"

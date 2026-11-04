@@ -28,7 +28,7 @@ Web interface for managing Sing-Box on OpenWrt 23/24/25.
 wget -O /root/install.sh https://raw.githubusercontent.com/mrvokintos/luci-app-singbox-ui/main/install.sh && chmod 0755 /root/install.sh && BRANCH="main" sh /root/install.sh
 ```
 
-The script adds the [openwrt.mrvokintos.ru](https://openwrt.mrvokintos.ru) repository, installs the panel from it and starts `singbox-ui-setup`, a full-screen setup screen:
+The script adds the [openwrt.mrvokintos.ru](https://openwrt.mrvokintos.ru) repository, installs the panel from it and starts `singbox-ui`, a full-screen setup screen:
 
 | Setting | Values |
 | --- | --- |
@@ -40,7 +40,7 @@ The script adds the [openwrt.mrvokintos.ru](https://openwrt.mrvokintos.ru) repos
 
 `Apply` shows the planned changes first. The same screen also installs a panel build from CI artifacts (PR / commit) and removes everything.
 
-`singbox-ui-setup` ships with the package, so it can be run again at any time. Without a terminal, or with `--plain`, it asks the questions one by one; `--yes` applies without questions, `--dry-run` only prints the commands. Use `↑`/`↓` (or `j`/`k`), `Enter`, and `q` or `←` to go back.
+`singbox-ui` ships with the package, so it can be run again at any time. Without a terminal, or with `--plain`, it asks the questions one by one; `--yes` applies without questions, `--dry-run` only prints the commands. Use `↑`/`↓` (or `j`/`k`), `Enter`, and `q` or `←` to go back.
 
 Choose the channel with `CHANNEL=dev sh /root/install.sh`.
 
@@ -52,7 +52,7 @@ Auto-update is a nightly cron job (`/usr/libexec/singbox-ui-autoupdate`). The co
 wget -O /etc/apk/keys/openwrt.rsa.pub https://openwrt.mrvokintos.ru/keys/openwrt.rsa.pub
 echo "https://openwrt.mrvokintos.ru/packages/all/APKINDEX.tar.gz" > /etc/apk/repositories.d/mrvoki.list
 apk update && apk add luci-app-singbox-ui
-singbox-ui-setup
+singbox-ui
 ```
 apk 3 needs the full path to `APKINDEX.tar.gz`. Without it, it looks for the index in `<url>/<arch>/`. The panel also shows a reminder until the initial setup is done.
 

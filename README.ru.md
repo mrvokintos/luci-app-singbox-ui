@@ -27,7 +27,7 @@
 wget -O /root/install.sh https://raw.githubusercontent.com/mrvokintos/luci-app-singbox-ui/main/install.sh && chmod 0755 /root/install.sh && BRANCH="main" sh /root/install.sh
 ```
 
-Скрипт подключает репозиторий [openwrt.mrvokintos.ru](https://openwrt.mrvokintos.ru), ставит из него панель и запускает `singbox-ui-setup` — полноэкранную настройку:
+Скрипт подключает репозиторий [openwrt.mrvokintos.ru](https://openwrt.mrvokintos.ru), ставит из него панель и запускает `singbox-ui` — полноэкранную настройку:
 
 | Настройка | Значения |
 | --- | --- |
@@ -39,7 +39,7 @@ wget -O /root/install.sh https://raw.githubusercontent.com/mrvokintos/luci-app-s
 
 Перед применением «Применить» показывает, что будет сделано. Там же можно поставить сборку панели из артефактов CI (PR / коммит) и удалить всё.
 
-`singbox-ui-setup` входит в пакет, его можно запускать повторно в любой момент. Без терминала или с `--plain` он задаёт вопросы по очереди; `--yes` применяет без вопросов, `--dry-run` только показывает команды. Управление: `↑`/`↓` (или `j`/`k`), `Enter`, `q` или `←` — назад.
+`singbox-ui` входит в пакет, его можно запускать повторно в любой момент. Без терминала или с `--plain` он задаёт вопросы по очереди; `--yes` применяет без вопросов, `--dry-run` только показывает команды. Управление: `↑`/`↓` (или `j`/`k`), `Enter`, `q` или `←` — назад.
 
 Канал выбирается так: `CHANNEL=dev sh /root/install.sh`.
 
@@ -51,7 +51,7 @@ wget -O /root/install.sh https://raw.githubusercontent.com/mrvokintos/luci-app-s
 wget -O /etc/apk/keys/openwrt.rsa.pub https://openwrt.mrvokintos.ru/keys/openwrt.rsa.pub
 echo "https://openwrt.mrvokintos.ru/packages/all/APKINDEX.tar.gz" > /etc/apk/repositories.d/mrvoki.list
 apk update && apk add luci-app-singbox-ui
-singbox-ui-setup
+singbox-ui
 ```
 apk 3 нужен полный путь к `APKINDEX.tar.gz`, без него он ищет индекс в `<url>/<arch>/`. Пока первоначальная настройка не сделана, панель показывает напоминание.
 

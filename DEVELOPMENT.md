@@ -25,11 +25,11 @@
 | `luci-app-singbox-ui/root/usr/libexec/singbox-ui-helper` | Ограниченные privileged-операции с файлами |
 | `luci-app-singbox-ui/root/etc/singbox-ui/template.json` | Legacy/default-шаблон, conffile OpenWrt |
 | `luci-app-singbox-ui/root/usr/share/rpcd/acl.d/luci-app-singbox-ui.json` | Права LuCI/rpcd |
-| `luci-app-singbox-ui/root/usr/sbin/singbox-ui-setup` | Настройка роутера: полноэкранное меню, вопросы по очереди, `--yes` |
+| `luci-app-singbox-ui/root/usr/sbin/singbox-ui` | Настройка роутера: полноэкранное меню, вопросы по очереди, `--yes`. `singbox-ui-setup` — ссылка на неё (старое имя) |
 | `luci-app-singbox-ui/root/usr/share/singbox-ui/setup/*.sh` | Модули setup: `ui` (вывод, `ui_choose`), `tui` (полноэкранный режим), `pkg` (APK/IPK, архитектура), `repo` (ключи и фиды), `core` (ядро), `system` (сервис, TUN, IPv6, сеть), `autoupdate` (cron), `i18n` |
 | `luci-app-singbox-ui/root/usr/libexec/singbox-ui-autoupdate` | Задача cron: обновление панели и ядра с проверкой config.json |
 | `luci-app-singbox-ui/root/usr/libexec/singbox-ui-mode-switch` | Настройка и удаление TUN, очистка старого TPROXY |
-| `install.sh` | Загрузчик: репозиторий, пакет, запуск `singbox-ui-setup` |
+| `install.sh` | Загрузчик: репозиторий, пакет, запуск `singbox-ui` |
 | `other/scripts/install-singbox*.sh` | Устаревшие обёртки над `install.sh` для старых ссылок |
 | `Dockerfile` | Сборка IPK/APK в официальном OpenWrt SDK (`openwrt/sdk`) |
 | `.github/workflows/build_luci-app-singbox-ui_from_tag.yml` | Ручная сборка и публикация GitHub Release (Release/Pre-release) |
@@ -208,7 +208,7 @@ APK/Alpine принимает RC-суффикс в форме underscore, поэ
 
 ```sh
 sh -n install.sh other/scripts/*.sh \\
-  luci-app-singbox-ui/root/usr/sbin/singbox-ui-setup \\
+  luci-app-singbox-ui/root/usr/sbin/singbox-ui \\
   luci-app-singbox-ui/root/usr/share/singbox-ui/setup/*.sh \\
   luci-app-singbox-ui/root/usr/libexec/singbox-ui-*
 node --check luci-app-singbox-ui/htdocs/luci-static/resources/view/singbox-ui/singbox-ui.js

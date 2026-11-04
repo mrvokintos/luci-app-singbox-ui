@@ -98,7 +98,7 @@ repo_write_feeds() {
         mkdir -p "${file%/*}" || return 1
         tmp="$file.tmp.$$"
         {
-            echo "# singbox-ui: managed by singbox-ui-setup (channel: $channel)"
+            echo "# singbox-ui: managed by singbox-ui (channel: $channel)"
             repo_feed_urls "$channel" "$arch" "$with_core" | while read -r _name url; do
                 echo "$url/APKINDEX.tar.gz"
             done
@@ -113,7 +113,7 @@ repo_write_feeds() {
                 $1 ~ /^src/ && $2 ~ /^mrvoki_/ { next }
                 /^# singbox-ui:/ { next }
                 { print }' "$file"
-            echo "# singbox-ui: managed by singbox-ui-setup (channel: $channel)"
+            echo "# singbox-ui: managed by singbox-ui (channel: $channel)"
             repo_feed_urls "$channel" "$arch" "$with_core" | while read -r name url; do
                 echo "src/gz $name $url"
             done

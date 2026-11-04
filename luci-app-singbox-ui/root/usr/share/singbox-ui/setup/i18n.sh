@@ -1,5 +1,5 @@
 #!/bin/sh
-# Тексты singbox-ui-setup / singbox-ui-setup strings. i18n_load ru|en
+# Тексты singbox-ui / singbox-ui strings. i18n_load ru|en
 
 i18n_load() {
     case "$1" in

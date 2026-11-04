@@ -23,8 +23,8 @@ define Package/luci-app-singbox-ui/postinst
 	rm -rf /tmp/luci-modulecache/
 	/etc/init.d/rpcd reload 2>/dev/null
 	[ "$${PKG_UPGRADE:-0}" = 1 ] || {
-		echo "singbox-ui: run 'singbox-ui-setup' over ssh for the initial setup (core, service, TUN, auto-update)."
-		echo "singbox-ui: для первоначальной настройки выполните по ssh: singbox-ui-setup"
+		echo "singbox-ui: run 'singbox-ui' over ssh for the initial setup (core, service, TUN, auto-update)."
+		echo "singbox-ui: для первоначальной настройки выполните по ssh: singbox-ui"
 	}
 	exit 0
 }

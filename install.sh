@@ -1,18 +1,20 @@
 #!/bin/sh
 # Установщик singbox-ui: подключает репозиторий, ставит панель и запускает
-# singbox-ui-setup, который настраивает всё остальное.
+# singbox-ui, который настраивает всё остальное.
 # singbox-ui installer: adds the repository, installs the panel and runs
-# singbox-ui-setup, which configures everything else.
+# singbox-ui, which configures everything else.
 #
 #   CHANNEL=stable|beta|git|dev   канал репозитория (BRANCH=dev значит dev)
 #                                 repository channel (BRANCH=dev means dev)
-#   остальные переменные передаются в singbox-ui-setup (см. singbox-ui-setup --help)
-#   other variables are passed on to singbox-ui-setup
+#   остальные переменные передаются в singbox-ui (см. singbox-ui --help)
+#   other variables are passed on to singbox-ui
 
 REPO_BASE="${REPO_BASE:-https://openwrt.mrvokintos.ru}"
 GITHUB_REPO="mrvokintos/luci-app-singbox-ui"
 ARTIFACTS_URL="https://raw.githubusercontent.com/$GITHUB_REPO/artifacts"
-SETUP=/usr/sbin/singbox-ui-setup
+SETUP=/usr/sbin/singbox-ui
+# Сборки до переименования ставили только singbox-ui-setup / Builds before the rename only had singbox-ui-setup
+SETUP_OLD=/usr/sbin/singbox-ui-setup
 
 say() { printf '  \033[38;5;85m▸\033[0m %s\n' "$*"; }
 warn() { printf '  \033[38;5;214m!\033[0m %s\n' "$*"; }
@@ -61,8 +63,8 @@ retry() {
 
 if [ "$CHANNEL" = stable ]; then FEED="$REPO_BASE/packages/all"; else FEED="$REPO_BASE/packages/$CHANNEL/all"; fi
 
-# Ключ и фид панели. Фид с ядрами добавляет singbox-ui-setup, если ядро
-# выбрано из репозитория. Key and panel feed; singbox-ui-setup adds the core
+# Ключ и фид панели. Фид с ядрами добавляет singbox-ui, если ядро
+# выбрано из репозитория. Key and panel feed; singbox-ui adds the core
 # feed when the core comes from the repository.
 add_repo() {
     if [ "$PM" = apk ]; then
@@ -71,7 +73,7 @@ add_repo() {
         list=/etc/apk/repositories.d/mrvoki.list
         grep -qF "$FEED/APKINDEX.tar.gz" "$list" 2>/dev/null && return 0
         {
-            echo "# singbox-ui: managed by singbox-ui-setup (channel: $CHANNEL)"
+            echo "# singbox-ui: managed by singbox-ui (channel: $CHANNEL)"
             echo "$FEED/APKINDEX.tar.gz"
         } > "$list"
     else
@@ -82,7 +84,7 @@ add_repo() {
         touch "$feeds"
         awk '$1 ~ /^src/ && $2 ~ /^mrvoki_/ { next } /^# singbox-ui:/ { next } { print }' "$feeds" > "$feeds.tmp"
         {
-            echo "# singbox-ui: managed by singbox-ui-setup (channel: $CHANNEL)"
+            echo "# singbox-ui: managed by singbox-ui (channel: $CHANNEL)"
             echo "src/gz mrvoki_all $FEED"
         } >> "$feeds.tmp"
         mv -f "$feeds.tmp" "$feeds"
@@ -155,12 +157,16 @@ else
     install_from_github || fail "Cannot install luci-app-singbox-ui / Не удалось установить luci-app-singbox-ui"
 fi
 
-if [ ! -x "$SETUP" ]; then
-    warn "Channel $CHANNEL has a panel without singbox-ui-setup, trying GitHub"
-    warn "В канале $CHANNEL панель без singbox-ui-setup, пробую GitHub"
+has_setup() {
+    [ -x "$SETUP" ] || { [ -x "$SETUP_OLD" ] && SETUP="$SETUP_OLD"; }
+}
+
+if ! has_setup; then
+    warn "Channel $CHANNEL has a panel without the setup command, trying GitHub"
+    warn "В канале $CHANNEL панель без команды настройки, пробую GitHub"
     install_from_github
 fi
-[ -x "$SETUP" ] || fail "singbox-ui-setup is missing in this build; try CHANNEL=dev / в этой сборке нет singbox-ui-setup, попробуйте CHANNEL=dev"
+has_setup || fail "This build has no setup command; try CHANNEL=dev / в этой сборке нет команды настройки, попробуйте CHANNEL=dev"
 
 cleanup
 trap - EXIT
