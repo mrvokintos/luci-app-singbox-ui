@@ -10,5 +10,6 @@ luci-app-singbox-ui-dev-9364a70-20261103-1714.ipk
 luci-app-singbox-ui-dev-b191ae3-20261104-1725.ipk
 luci-app-singbox-ui-dev-c8f59f0-20261104-1359.ipk
 luci-app-singbox-ui-dev-ec6d48f-20261104-1710.ipk
+luci-app-singbox-ui-dev-ed1c96c-20261104-1753.ipk
 luci-app-singbox-ui-dev-ee5ec36-20261103-2326.ipk
 luci-app-singbox-ui-dev-f21e884-20261103-2217.ipk
