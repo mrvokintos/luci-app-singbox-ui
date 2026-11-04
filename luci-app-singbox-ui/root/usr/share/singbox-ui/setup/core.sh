@@ -60,8 +60,8 @@ core_installed_kind() {
     case "$src:$pkg" in
         SagerNet/sing-box:*) echo original ;;
         shtorm-7/sing-box-extended:*) echo extended ;;
-        repo:sing-box|mrvokintos/sing-box-clean:sing-box) echo clean ;;
-        repo:sing-box-extended|mrvokintos/sing-box-clean:sing-box-extended) echo clean-extended ;;
+        repo:sing-box|"$SBUI_CORE_REPO":sing-box) echo clean ;;
+        repo:sing-box-extended|"$SBUI_CORE_REPO":sing-box-extended) echo clean-extended ;;
         *:sing-box-extended) echo extended ;;
         *) echo feed ;;
     esac
@@ -168,14 +168,14 @@ core_install() {
             if repo_arch_has_core "$arch"; then
                 core_install_from_repo sing-box
             else
-                install_release_core mrvokintos/sing-box-clean "Clean" sing-box
+                install_release_core "$SBUI_CORE_REPO" "Clean" sing-box
             fi
             ;;
         clean-extended)
             if repo_arch_has_core "$arch"; then
                 core_install_from_repo sing-box-extended
             else
-                install_release_core mrvokintos/sing-box-clean "Clean Extended" sing-box-extended
+                install_release_core "$SBUI_CORE_REPO" "Clean Extended" sing-box-extended
             fi
             ;;
         *) return 1 ;;

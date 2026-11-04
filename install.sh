@@ -10,7 +10,10 @@
 #   other variables are passed on to singbox-ui
 
 REPO_BASE="${REPO_BASE:-https://openwrt.mrvokintos.ru}"
-GITHUB_REPO="mrvokintos/luci-app-singbox-ui"
+# Форк: поменять здесь и в usr/share/singbox-ui/setup/source.sh (или SBUI_GITHUB_REPO=...)
+# Fork: change it here and in usr/share/singbox-ui/setup/source.sh (or SBUI_GITHUB_REPO=...)
+GITHUB_REPO="${SBUI_GITHUB_REPO:-mrvokintos/luci-app-singbox-ui}"
+export SBUI_GITHUB_REPO="$GITHUB_REPO"
 ARTIFACTS_URL="https://raw.githubusercontent.com/$GITHUB_REPO/artifacts"
 SETUP=/usr/sbin/singbox-ui
 # Сборки до переименования ставили только singbox-ui-setup / Builds before the rename only had singbox-ui-setup

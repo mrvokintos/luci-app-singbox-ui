@@ -15,16 +15,17 @@
 #   IPV6=disable|keep. Старые переменные установщика тоже понимаются:
 #   LANG=1|2, SINGBOX_INSTALL_MODE=1|2|3, OPERATION=1|2|3, BRANCH=dev,
 #   IPV6_CHOICE=1|2.
+#   Проверка сети / network check: NETWORK_CHECK=0, NETWORK_TIMEOUT=60,
+#   NETWORK_CHECK_URLS="url ...". Форки / forks: SBUI_GITHUB_REPO,
+#   SBUI_CORE_REPO, REPO_BASE (см. / see setup/source.sh).
 
 SETUP_LIB="${SETUP_LIB:-/usr/share/singbox-ui/setup}"
-for module in ui pkg repo core system autoupdate i18n tui; do
+for module in source ui pkg repo core system autoupdate i18n tui; do
     . "$SETUP_LIB/$module.sh" || { echo "missing $SETUP_LIB/$module.sh" >&2; exit 1; }
 done
 
-ARTIFACTS_URL="https://raw.githubusercontent.com/mrvokintos/luci-app-singbox-ui/artifacts"
-
 usage() {
-    sed -n '2,18s/^# \{0,1\}//p' "$0"
+    sed -n '2,20s/^# \{0,1\}//p' "$0"
 }
 
 ACTION=menu

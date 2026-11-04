@@ -103,24 +103,49 @@ ipv6_restore() {
     run uci commit
 }
 
-# Проверка доступности сети / Network availability check
+# Проверка сети по HTTP, а не ping: через TUN sing-box ICMP часто не проходит,
+# а в некоторых странах ping до 1.1.1.1/8.8.8.8 закрыт. Есть адреса, доступные
+# из Китая. Неудача — только предупреждение: настройка уже применена.
+#   NETWORK_CHECK=0          пропустить проверку
+#   NETWORK_CHECK_URLS="..." свои адреса через пробел
+#   NETWORK_TIMEOUT=60       сколько ждать, сек
+# HTTP check instead of ping: ICMP often does not pass sing-box TUN and ping to
+# 1.1.1.1/8.8.8.8 is blocked in some countries. Includes URLs reachable from
+# China. A failure is only a warning: the settings are already applied.
+NETWORK_CHECK_URLS_DEFAULT="http://connectivitycheck.gstatic.com/generate_204 http://cp.cloudflare.com/generate_204 http://www.msftconnecttest.com/connecttest.txt http://connect.rom.miui.com/generate_204 http://www.baidu.com/ http://ya.ru/"
+
+_net_probe() {
+    if command -v uclient-fetch >/dev/null 2>&1; then
+        uclient-fetch -q -T 5 -O /dev/null "$1"
+    elif command -v wget >/dev/null 2>&1; then
+        wget -q -T 5 -O /dev/null "$1"
+    else
+        curl -fs -m 5 -o /dev/null "$1"
+    fi
+}
+
 network_check() {
-    local timeout="${NETWORK_TIMEOUT:-300}" interval=5 elapsed=0 target
-    local targets="77.88.8.8 1.1.1.1 8.8.8.8 9.9.9.9 223.5.5.5 94.140.14.14"
+    local timeout="${NETWORK_TIMEOUT:-60}" interval=5 start now url host
+    local urls="${NETWORK_CHECK_URLS:-$NETWORK_CHECK_URLS_DEFAULT}"
+    [ "${NETWORK_CHECK:-1}" = 0 ] && return 0
     [ -n "${SETUP_DRY_RUN:-}" ] && { echo "[dry-run] network check"; return 0; }
     show_progress "$MSG_NETWORK_CHECK"
-    while [ "$elapsed" -lt "$timeout" ]; do
-        for target in $targets; do
-            if ping -c 1 -W 2 "$target" >/dev/null 2>&1; then
-                show_success "$(printf "$MSG_NETWORK_OK" "$target" "$elapsed")"
+    start=$(date +%s)
+    while :; do
+        for url in $urls; do
+            if _net_probe "$url" >/dev/null 2>&1; then
+                host=${url#*://}; host=${host%%/*}
+                now=$(date +%s)
+                show_success "$(printf "$MSG_NETWORK_OK" "$host" "$((now - start))")"
                 return 0
             fi
         done
+        now=$(date +%s)
+        [ "$((now - start))" -lt "$timeout" ] || break
         sleep "$interval"
-        elapsed=$((elapsed + interval))
     done
-    show_error "$(printf "$MSG_NETWORK_FAIL" "$timeout")"
-    return 1
+    show_warning "$(printf "$MSG_NETWORK_FAIL" "$timeout")"
+    return 0
 }
 
 # Копия /etc/sing-box/*.json перед заменой ядра: удаление пакета может

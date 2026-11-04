@@ -14,6 +14,7 @@ check() { "$@" || fail "$*"; }
 # Без сети: ключ "скачивается" из локального файла / No network: the key is a local file
 _repo_fetch() { printf 'key\n' > "$2"; }
 
+. "$lib/source.sh"
 . "$lib/ui.sh"
 . "$lib/pkg.sh"
 . "$lib/repo.sh"

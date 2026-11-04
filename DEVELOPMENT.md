@@ -26,7 +26,7 @@
 | `luci-app-singbox-ui/root/etc/singbox-ui/template.json` | Legacy/default-шаблон, conffile OpenWrt |
 | `luci-app-singbox-ui/root/usr/share/rpcd/acl.d/luci-app-singbox-ui.json` | Права LuCI/rpcd |
 | `luci-app-singbox-ui/root/usr/sbin/singbox-ui` | Настройка роутера: полноэкранное меню, вопросы по очереди, `--yes`. `singbox-ui-setup` — ссылка на неё (старое имя) |
-| `luci-app-singbox-ui/root/usr/share/singbox-ui/setup/*.sh` | Модули setup: `ui` (вывод, `ui_choose`), `tui` (полноэкранный режим), `pkg` (APK/IPK, архитектура), `repo` (ключи и фиды), `core` (ядро), `system` (сервис, TUN, IPv6, сеть), `autoupdate` (cron), `i18n` |
+| `luci-app-singbox-ui/root/usr/share/singbox-ui/setup/*.sh` | Модули setup: `source` (адреса GitHub и репозитория, для форков), `ui` (вывод, `ui_choose`), `tui` (полноэкранный режим), `pkg` (APK/IPK, архитектура), `repo` (ключи и фиды), `core` (ядро), `system` (сервис, TUN, IPv6, сеть), `autoupdate` (cron), `i18n` |
 | `luci-app-singbox-ui/root/usr/libexec/singbox-ui-autoupdate` | Задача cron: обновление панели и ядра с проверкой config.json |
 | `luci-app-singbox-ui/root/usr/libexec/singbox-ui-mode-switch` | Настройка и удаление TUN, очистка старого TPROXY |
 | `install.sh` | Загрузчик: репозиторий, пакет, запуск `singbox-ui` |
@@ -177,6 +177,16 @@ make package/luci-app-singbox-ui/compile NO_DEPS=1 V=s
 Release workflow (`build_luci-app-singbox-ui_from_tag.yml`) запускается вручную через `workflow_dispatch` с выбором версии тега и типа релиза (`prerelease` или `release`). Он извлекает версию без `v`, синхронизирует Makefile, собирает IPK и APK, а затем публикует оба файла в GitHub Release с выбранным флагом.
 
 Автосборка после каждого коммита в ветках `main` и `dev` или PR (`build_luci-app-singbox-ui_from_pr.yml`) собирает пакеты и сохраняет их в артефактах GitHub Actions, а также в соответствующих каталогах отдельной ветки `artifacts` (`main/ipk`, `main/apk`, `dev/ipk`, `dev/apk`) для runner-установщика, не создавая GitHub Release.
+
+### Форк
+
+Адреса заданы в двух местах: `GITHUB_REPO` в `install.sh` и `luci-app-singbox-ui/root/usr/share/singbox-ui/setup/source.sh` (`SBUI_GITHUB_REPO`, `SBUI_CORE_REPO`, `REPO_BASE`, `ARTIFACTS_URL`). Их же можно задать переменными окружения при запуске, без правки кода:
+
+```sh
+SBUI_GITHUB_REPO=user/luci-app-singbox-ui sh install.sh
+```
+
+Проверка сети после настройки идёт по HTTP, а не ping, и при неудаче только предупреждает. Её можно отключить (`NETWORK_CHECK=0`) или задать свои адреса (`NETWORK_CHECK_URLS="http://..."`).
 
 ### Версии
 

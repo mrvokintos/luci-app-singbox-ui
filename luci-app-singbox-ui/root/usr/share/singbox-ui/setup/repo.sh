@@ -12,7 +12,7 @@
 #
 # Требует pkg.sh (PKG_IS_APK). Пути идут через $SBUI_ROOT (для тестов).
 
-: "${REPO_BASE:=https://openwrt.mrvokintos.ru}"
+: "${REPO_BASE:=https://openwrt.mrvokintos.ru}"  # по умолчанию из source.sh / default from source.sh
 # Архитектуры, для которых в репозитории есть ядра / Arches with cores in the repo
 : "${REPO_CORE_ARCHES:=aarch64_cortex-a53}"
 
