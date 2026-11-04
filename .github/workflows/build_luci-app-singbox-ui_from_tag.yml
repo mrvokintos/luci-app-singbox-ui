@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       tag_name:
-        description: "Tag version (e.g. v3.1.0-rc5 or v3.1.0)"
+        description: "Tag version (e.g. v1.0.0-rc1 or v1.0.0)"
         required: true
         type: string
       release_type:
@@ -78,13 +78,18 @@ jobs:
         run: |
           set -euo pipefail
 
+          # v1.0.0-rc1 -> 1.0.0_rc1: apk не принимает "-" в версии; ipk берёт ту же
+          # v1.0.0-rc1 -> 1.0.0_rc1: apk rejects "-" in a version; ipk uses the same
           PACKAGE_VERSION="$(printf '%s' "${TAG_VERSION}" | sed -E 's/-(alpha|beta|pre|rc|p)[.-]?([0-9]*)$/_\1\2/')"
           sed -i "s/^PKG_VERSION:=.*$/PKG_VERSION:=${PACKAGE_VERSION}/" luci-app-singbox-ui/Makefile
+          sed -i "s/^PKG_RELEASE:=.*$/PKG_RELEASE:=1/" luci-app-singbox-ui/Makefile
+          sed -i "s/^const UI_VERSION='[^']*'/const UI_VERSION='${PACKAGE_VERSION}'/" \
+            luci-app-singbox-ui/htdocs/luci-static/resources/view/singbox-ui/singbox-ui.js
 
           if git diff --quiet; then
             echo "No version changes detected."
           else
-            git add luci-app-singbox-ui/Makefile
+            git add luci-app-singbox-ui/Makefile luci-app-singbox-ui/htdocs/luci-static/resources/view/singbox-ui/singbox-ui.js
             git -c user.name="github-actions[bot]" -c user.email="github-actions[bot]@users.noreply.github.com" \
               commit -m "github-actions[bot]: sync Makefile version to v${TAG_VERSION}"
 
@@ -118,14 +123,10 @@ jobs:
         shell: bash
         env:
           TAG_VERSION: ${{ needs.sync-version.outputs.tag_version }}
-          PKG_TYPE: ${{ matrix.pkg_type }}
         run: |
           set -euo pipefail
-          PACKAGE_VERSION="${TAG_VERSION}"
-          if [ "${PKG_TYPE}" = "apk" ]; then
-            PACKAGE_VERSION="$(printf '%s' "${TAG_VERSION}" | sed -E 's/-(alpha|beta|pre|rc|p)[.-]?([0-9]*)$/_\1\2/')"
-          fi
-          sed -i "s/^PKG_VERSION:=.*$/PKG_VERSION:=${PACKAGE_VERSION}/" luci-app-singbox-ui/Makefile
+          PACKAGE_VERSION="$(printf '%s' "${TAG_VERSION}" | sed -E 's/-(alpha|beta|pre|rc|p)[.-]?([0-9]*)$/_\1\2/')"
+          grep -qx "PKG_VERSION:=${PACKAGE_VERSION}" luci-app-singbox-ui/Makefile
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

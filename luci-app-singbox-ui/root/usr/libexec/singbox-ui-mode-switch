@@ -76,6 +76,13 @@ configure_firewall_tun() {
         uci set firewall.@zone[-1].device="$TUN_IFACE"
         uci set firewall.@zone[-1].family="ipv4"
         uci add_list firewall.@zone[-1].network="proxy"
+    else
+        # Старые версии писали network='singtun0' (имя устройства, а не интерфейса)
+        # Older versions wrote network='singtun0' (a device name, not an interface)
+        zone_id=$(find_section zone name proxy)
+        uci -q del_list "firewall.@zone[$zone_id].network=$TUN_IFACE"
+        uci -q get "firewall.@zone[$zone_id].network" | grep -qw proxy ||
+            uci add_list "firewall.@zone[$zone_id].network=proxy"
     fi
     if ! find_section forwarding dest proxy >/dev/null; then
         uci add firewall forwarding >/dev/null

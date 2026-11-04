@@ -26,6 +26,15 @@ RUN sed -n 's#^src-git luci https://git.openwrt.org/project/luci.git#src-git luc
 
 COPY --chown=buildbot:buildbot ./luci-app-singbox-ui /builder/package/feeds/luci/luci-app-singbox-ui
 
+# Версия панели в JS берётся из Makefile: PKG_VERSION, а у автосборок ещё -rN.
+# The panel version in JS comes from the Makefile: PKG_VERSION, plus -rN for CI builds.
+RUN cd package/feeds/luci/luci-app-singbox-ui \
+ && v=$(sed -n 's/^PKG_VERSION:=//p' Makefile) \
+ && r=$(sed -n 's/^PKG_RELEASE:=//p' Makefile) \
+ && { [ "$r" = 1 ] || v="$v-r$r"; } \
+ && sed -i "s/^const UI_VERSION='[^']*'/const UI_VERSION='$v'/" htdocs/luci-static/resources/view/singbox-ui/singbox-ui.js \
+ && grep -q "^const UI_VERSION='$v'" htdocs/luci-static/resources/view/singbox-ui/singbox-ui.js
+
 RUN make defconfig \
  && make package/luci-app-singbox-ui/compile NO_DEPS=1 V=s \
  && mkdir -p /tmp/out \

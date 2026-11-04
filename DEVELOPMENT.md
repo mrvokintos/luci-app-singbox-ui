@@ -37,6 +37,7 @@
 | `tests/share-link.test.js` | Тесты parser |
 | `tests/helper.test.sh` | Тесты helper и защиты путей |
 | `tests/setup.test.sh` | Тесты модулей setup на фейковом корне (`SBUI_ROOT`), идут и в busybox |
+| `tests/version.test.sh` | `UI_VERSION` в JS совпадает с `PKG_VERSION` |
 
 ## Runtime-пути
 
@@ -177,32 +178,28 @@ Release workflow (`build_luci-app-singbox-ui_from_tag.yml`) запускаетс
 
 Автосборка после каждого коммита в ветках `main` и `dev` или PR (`build_luci-app-singbox-ui_from_pr.yml`) собирает пакеты и сохраняет их в артефактах GitHub Actions, а также в соответствующих каталогах отдельной ветки `artifacts` (`main/ipk`, `main/apk`, `dev/ipk`, `dev/apk`) для runner-установщика, не создавая GitHub Release.
 
-### Tag version и APK version — это не одно и то же
+### Версии
 
-Человекочитаемая версия остаётся такой:
+Нумерация начата заново с `1.0.0`: версии `3.x` достались от исходного проекта (форка).
 
-```text
-v3.1.0-rc5
-UI 3.1.0-rc5
-```
+Единственный источник версии — `PKG_VERSION` в `luci-app-singbox-ui/Makefile`. `UI_VERSION` в `singbox-ui.js` должен совпадать с ним, это проверяет `tests/version.test.sh`. При сборке `Dockerfile` записывает в JS полную версию пакета: у релиза `1.0.0_rc1`, у автосборки `1.0.0_rc1-r202611041240`.
 
-APK/Alpine принимает RC-суффикс в форме underscore, поэтому workflow преобразует только внутреннюю package version:
+Тег пишется через дефис, версия пакета — через подчёркивание (apk не принимает `-` в версии). Release workflow сам переводит тег в версию пакета, одинаковую для APK и IPK:
 
 ```text
-3.1.0-rc4  ->  3.1.0_rc4
-3.2.0-rc.1 ->  3.2.0_rc1
+v1.0.0-rc1   ->  1.0.0_rc1
+v1.2.0-rc.2  ->  1.2.0_rc2
+v1.0.0       ->  1.0.0
 ```
 
-Не меняйте Git-тег ради APK. Эта ошибка уже приводила к падению APK jobs у `rc1`, `rc2` и `rc3`.
+Workflow записывает версию в Makefile и JS, ставит `PKG_RELEASE:=1` и коммитит это в выбранную ветку. Автосборки (`build_luci-app-singbox-ui_from_pr.yml`) оставляют `PKG_VERSION`, а в `PKG_RELEASE` пишут UTC-метку `YYYYmmddHHMM`: так каждая следующая сборка новее предыдущей.
 
 ### Политика версий
 
 - опубликованные теги не переписывать;
-- RC повышать последовательно (`rc4`, затем `rc5`);
+- RC повышать последовательно (`rc1`, затем `rc2`);
 - stable создавать только после явной команды пользователя;
 - если тег собрался с ошибкой, исправление выпускается следующим RC.
-
-Текущее состояние: `v3.1.0-rc5` — prerelease с документацией для разработчиков; `v3.1.0-rc4` — последний успешно собранный пакет до этого изменения; `v3.1.0-rc3` — тег с неудачной APK-сборкой до исправления package-version normalization.
 
 ## Проверки перед commit/tag
 
@@ -217,6 +214,7 @@ node tests/share-link.test.js
 node tests/version-parser.test.js
 sh tests/helper.test.sh
 sh tests/setup.test.sh
+sh tests/version.test.sh
 jq empty luci-app-singbox-ui/root/usr/share/rpcd/acl.d/luci-app-singbox-ui.json
 jq -e '.route.default_domain_resolver == "local-dns"' \\
   luci-app-singbox-ui/root/etc/singbox-ui/template.json
@@ -228,7 +226,7 @@ git diff --check
 ```sh
 git status --short --branch
 git ls-remote origin refs/heads/main
-git tag --list 'v3.1.0-rc*'
+git ls-remote --tags origin
 ```
 
 ## Точки расширения
