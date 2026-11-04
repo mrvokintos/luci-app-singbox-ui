@@ -34,7 +34,7 @@ The script adds the [openwrt.mrvokintos.ru](https://openwrt.mrvokintos.ru) repos
 | --- | --- |
 | sing-box core | `Original`, `Extended`, `Clean`, `Clean Extended`. On `aarch64_cortex-a53` the Clean builds come from the repository, elsewhere from GitHub |
 | Update channel | `stable`, `beta`, `git` (builds of `main`), `dev` (builds of `dev`) |
-| Auto-update | off, panel only (default), panel and core |
+| Auto-update | off, panel only, panel and core. Default: panel only for stable and beta, off for git and dev (enable it by hand) |
 | IPv6 | disable or keep |
 | config.json | keep or open in an editor |
 

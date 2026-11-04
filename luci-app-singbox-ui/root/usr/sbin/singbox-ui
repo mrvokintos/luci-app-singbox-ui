@@ -77,14 +77,36 @@ repo_channel_valid "$S_CHANNEL" || S_CHANNEL="$REPO_CHANNEL"
 repo_channel_valid "$S_CHANNEL" || S_CHANNEL=$(saved channel)
 repo_channel_valid "$S_CHANNEL" || S_CHANNEL=stable
 
+# Автообновление по умолчанию: панель для stable и beta, выключено для git и dev
+# (там сборка на каждый коммит, включается вручную).
+# Default auto-update: panel for stable and beta, off for git and dev
+# (a build per commit there, enable it by hand).
+autoupdate_default() {
+    case "$1" in stable|beta) echo ui ;; *) echo off ;; esac
+}
+
+# AU_FOLLOW=1: значение не выбрано явно и следует за каналом
+# AU_FOLLOW=1: the value was not chosen explicitly and follows the channel
+AU_FOLLOW=0
 S_AUTOUPDATE="${AUTOUPDATE:-}"
 if ! autoupdate_mode_valid "$S_AUTOUPDATE"; then
-    # Первая настройка (выбор ещё не сохранён) — только панель; дальше — как в crontab.
+    # Первая настройка (выбор ещё не сохранён) — по каналу; дальше — как в crontab.
     # install.sh уже подключает репозиторий, поэтому смотреть на фиды нельзя.
-    # First setup (nothing saved yet): panel only; later: whatever crontab has.
+    # First setup (nothing saved yet): by channel; later: whatever crontab has.
     # install.sh already adds the repo, so the feeds cannot tell.
-    if [ -n "$(saved autoupdate)" ]; then S_AUTOUPDATE=$(autoupdate_current); else S_AUTOUPDATE=ui; fi
+    if [ -n "$(saved autoupdate)" ]; then
+        S_AUTOUPDATE=$(autoupdate_current)
+    else
+        S_AUTOUPDATE=$(autoupdate_default "$S_CHANNEL")
+        AU_FOLLOW=1
+    fi
 fi
+
+# После смены канала / After a channel change
+autoupdate_follow_channel() {
+    [ "$AU_FOLLOW" = 1 ] && S_AUTOUPDATE=$(autoupdate_default "$S_CHANNEL")
+    return 0
+}
 
 S_IPV6="${IPV6:-}"
 case "$S_IPV6" in disable|keep) ;; *) S_IPV6=$(saved ipv6) ;; esac
@@ -456,11 +478,13 @@ run_tui() {
                 case "$S_CHANNEL" in stable) r=1 ;; beta) r=2 ;; git) r=3 ;; *) r=4 ;; esac
                 tui_choose r "$L_CHANNEL" "$r" "$V_CHANNEL_STABLE" "$V_CHANNEL_BETA" "$V_CHANNEL_GIT" "$V_CHANNEL_DEV"
                 S_CHANNEL=$(echo stable beta git dev | cut -d' ' -f"$r")
+                autoupdate_follow_channel
                 ;;
             4)
                 case "$S_AUTOUPDATE" in off) r=1 ;; ui) r=2 ;; *) r=3 ;; esac
                 tui_choose r "$L_AUTOUPDATE" "$r" "$V_AU_OFF" "$V_AU_UI" "$V_AU_ALL" "-" "#$V_AU_ALL_NOTE"
                 S_AUTOUPDATE=$(echo off ui all | cut -d' ' -f"$r")
+                AU_FOLLOW=0
                 ;;
             5)
                 [ "$S_IPV6" = disable ] && r=1 || r=2
@@ -555,6 +579,7 @@ run_plain() {
     case "$S_CHANNEL" in stable) cur=1 ;; beta) cur=2 ;; git) cur=3 ;; *) cur=4 ;; esac
     ui_choose r "$L_CHANNEL" "$cur" "$V_CHANNEL_STABLE" "$V_CHANNEL_BETA" "$V_CHANNEL_GIT" "$V_CHANNEL_DEV"
     S_CHANNEL=$(echo stable beta git dev | cut -d' ' -f"$r")
+    autoupdate_follow_channel
 
     case "$S_AUTOUPDATE" in off) cur=1 ;; ui) cur=2 ;; *) cur=3 ;; esac
     ui_choose r "$L_AUTOUPDATE" "$cur" "$V_AU_OFF" "$V_AU_UI" "$V_AU_ALL ($V_AU_ALL_NOTE)"
