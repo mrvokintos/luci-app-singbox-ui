@@ -31,6 +31,16 @@ detect_pkg_manager || { log "no package manager"; exit 1; }
 PKG_UPDATE_RETRIES=3
 PKG_INSTALL_RETRIES=2
 
+# Пакет, поставленный из файла, apk закрепляет по хешу ("name><Q1..." в world),
+# и apk upgrade его больше не обновляет. Снять закрепление: apk add NAME.
+# apk pins a package installed from a file by its hash ("name><Q1..." in world),
+# so apk upgrade never moves it. Drop the pin with apk add NAME.
+pkg_unpin() {
+    [ "$PKG_IS_APK" -eq 1 ] || return 0
+    grep -q "^$1><" /etc/apk/world 2>/dev/null || return 0
+    apk add "$1" >/dev/null 2>&1 && log "$1: unpinned from a local file"
+}
+
 pkg_upgradable() {
     if [ "$PKG_IS_APK" -eq 1 ]; then
         apk list -u "$1" 2>/dev/null | grep -q "^$1-"
@@ -71,9 +81,11 @@ fetch_core_binary() {
 pkg_list_update >/dev/null 2>&1 || { log "package list update failed"; exit 1; }
 
 # Панель / Panel
+pkg_unpin luci-app-singbox-ui
 if pkg_upgradable luci-app-singbox-ui; then
     before=$(pkg_version luci-app-singbox-ui)
-    if pkg_upgrade luci-app-singbox-ui >/dev/null 2>&1; then
+    if pkg_upgrade luci-app-singbox-ui >/dev/null 2>&1 &&
+        [ "$(pkg_version luci-app-singbox-ui)" != "$before" ]; then
         log "luci-app-singbox-ui: $before -> $(pkg_version luci-app-singbox-ui)"
     else
         log "luci-app-singbox-ui: upgrade failed"
@@ -90,6 +102,7 @@ fi
 core=sing-box
 pkg_is_installed sing-box-extended && core=sing-box-extended
 pkg_is_installed "$core" || { log "core is not installed, skipped"; exit 0; }
+pkg_unpin "$core"
 pkg_upgradable "$core" || exit 0
 
 if ! fetch_core_binary "$core"; then

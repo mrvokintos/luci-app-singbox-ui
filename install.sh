@@ -98,6 +98,10 @@ install_from_repo() {
     if [ "$PM" = apk ]; then
         retry apk update >/dev/null || return 1
         if apk info -e luci-app-singbox-ui >/dev/null 2>&1; then
+            # Снять закрепление по хешу после установки из файла
+            # Drop the hash pin left by an install from a file
+            grep -q '^luci-app-singbox-ui><' /etc/apk/world 2>/dev/null &&
+                apk add luci-app-singbox-ui >/dev/null
             apk upgrade luci-app-singbox-ui
         else
             apk add luci-app-singbox-ui
