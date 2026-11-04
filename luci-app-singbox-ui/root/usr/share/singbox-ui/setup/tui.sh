@@ -96,6 +96,10 @@ _tui_draw() {
     [ "$end" -gt "$n" ] && end=$n
     while [ "$i" -le "$end" ]; do
         item=$(_tui_item "$i" "$@")
+        # Стереть строку целиком: значение ставится прыжком в колонку, и промежуток
+        # иначе хранит текст прошлого экрана. Erase the whole line: the value is
+        # placed by jumping to a column, so the gap would keep the previous screen.
+        printf '\033[2K'
         if [ "$item" = "-" ]; then
             printf '   \033[2m%s\033[0m\033[K\n' "────────────────────────"
         elif [ "${item#"#"}" != "$item" ]; then
