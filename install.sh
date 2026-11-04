@@ -30,6 +30,7 @@ cleanup() {
 if [ -z "${CHANNEL:-}" ]; then
     case "${BRANCH:-main}" in dev) CHANNEL=dev ;; *) CHANNEL=stable ;; esac
 fi
+GITHUB_API="https://api.github.com/repos/$GITHUB_REPO/releases"
 case "$CHANNEL" in stable|beta|git|dev) ;; *) fail "CHANNEL: stable | beta | git | dev" ;; esac
 export CHANNEL
 
@@ -60,6 +61,19 @@ retry() {
     done
     return 1
 }
+
+# В stable только обычные релизы. Пока их нет, ставится beta (пре-релиз).
+# Если GitHub недоступен, канал не меняется.
+# stable carries real releases only. Until there is one, beta (a pre-release)
+# is installed. If GitHub is unreachable the channel is kept.
+if [ "$CHANNEL" = stable ]; then
+    releases=$(fetch "$GITHUB_API" - 2>/dev/null)
+    if [ -n "$releases" ] && ! printf '%s' "$releases" | grep -q '"prerelease": *false'; then
+        warn "No stable release yet, using the beta channel / Стабильного релиза ещё нет, ставлю из beta"
+        CHANNEL=beta
+    fi
+    unset releases
+fi
 
 if [ "$CHANNEL" = stable ]; then FEED="$REPO_BASE/packages/all"; else FEED="$REPO_BASE/packages/$CHANNEL/all"; fi
 
@@ -113,9 +127,9 @@ install_from_repo() {
 }
 
 # URL пакета вне репозитория: dev/git — свежая сборка из артефактов CI,
-# stable/beta — новый релиз на GitHub (если обычного нет, то пре-релиз).
+# stable — последний обычный релиз, beta — самый новый релиз, включая пре-релизы.
 # Package URL outside the repo: dev/git take the newest CI artifact,
-# stable/beta the newest GitHub release (a pre-release if there is no release).
+# stable the latest real release, beta the newest release including pre-releases.
 github_package_url() {
     local branch name list
     case "$CHANNEL" in
@@ -127,8 +141,13 @@ github_package_url() {
                 awk -F- '{ print $(NF - 1) $NF "\t" $0 }' | sort | tail -n 1 | cut -f2)
             [ -n "$name" ] && echo "$ARTIFACTS_URL/$branch/$EXT/$name"
             ;;
-        *)
-            fetch "https://api.github.com/repos/$GITHUB_REPO/releases" - 2>/dev/null |
+        stable)
+            # releases/latest не отдаёт пре-релизы / releases/latest skips pre-releases
+            fetch "$GITHUB_API/latest" - 2>/dev/null |
+                grep -o "https://[^\"]*/luci-app-singbox-ui\.$EXT" | head -n 1
+            ;;
+        beta)
+            fetch "$GITHUB_API" - 2>/dev/null |
                 grep -o "https://[^\"]*/luci-app-singbox-ui\.$EXT" | head -n 1
             ;;
     esac

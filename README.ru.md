@@ -32,7 +32,7 @@ wget -O /root/install.sh https://raw.githubusercontent.com/mrvokintos/luci-app-s
 | Настройка | Значения |
 | --- | --- |
 | Ядро sing-box | `Original`, `Extended`, `Clean`, `Clean Extended`. На `aarch64_cortex-a53` сборки Clean ставятся из репозитория, на других архитектурах — с GitHub |
-| Канал обновлений | `stable`, `beta`, `git` (сборки `main`), `dev` (сборки `dev`) |
+| Канал обновлений | `stable` (только релизы), `beta` (пре-релизы), `git` (сборки `main`), `dev` (сборки `dev`). До первого стабильного релиза `install.sh` ставит `beta` |
 | Автообновление | выключено, только панель, панель и ядро. По умолчанию: только панель для stable и beta, выключено для git и dev (включается вручную) |
 | IPv6 | отключить или не менять |
 | config.json | не менять или открыть в редакторе |

@@ -237,6 +237,27 @@ lan_address() {
     uci -q get network.lan.ipaddr 2>/dev/null | cut -d/ -f1
 }
 
+# Версия панели из подключённого фида (кроме установленной) / Feed version, not the installed one
+panel_feed_version() {
+    apk list -a luci-app-singbox-ui 2>/dev/null | grep -v '\[installed\]' |
+        sed -n 's/^luci-app-singbox-ui-\([^ ]*\) .*/\1/p' | head -n 1
+}
+
+# Поставить панель из нового канала, не трогая другие пакеты
+# Install the panel from the new channel without touching other packages
+panel_switch_channel() {
+    local ver
+    [ -n "${SETUP_DRY_RUN:-}" ] && { echo "[dry-run] apk add luci-app-singbox-ui=<channel version>"; return 0; }
+    ver=$(panel_feed_version)
+    if [ -z "$ver" ]; then
+        apk upgrade luci-app-singbox-ui
+        return
+    fi
+    # =VER закрепляет версию в world, второй apk add снимает закрепление
+    # =VER pins the version in world, the second apk add drops the pin
+    apk add "luci-app-singbox-ui=$ver" && apk add luci-app-singbox-ui
+}
+
 apply_settings() {
     local with_core=0 failed=0
     separator "$T_TITLE"
@@ -293,11 +314,15 @@ apply_settings() {
     # Панель последней: пакет заменяет и этот скрипт / The panel goes last: it replaces this script
     show_progress "$(printf "$MSG_PANEL_UPGRADE" "$S_CHANNEL")"
     if [ -n "$REPO_CHANNEL" ] && [ "$S_CHANNEL" != "$REPO_CHANNEL" ] && [ "$PKG_IS_APK" -eq 1 ]; then
-        # Канал сменили: --available разрешает откат на версию нового канала.
-        # При первом подключении репозитория панель только обновляется, без отката.
-        # Channel changed: --available allows going back to the new channel's
-        # version. On the first setup the panel is only upgraded, never downgraded.
-        run apk upgrade --available luci-app-singbox-ui || failed=1
+        # Канал сменили: поставить версию нового канала, даже если она ниже.
+        # Только этот пакет: apk upgrade --available пересобирает всю систему
+        # и затирает чужие файлы (например, своё ядро поверх пакета sing-box).
+        # При первом подключении репозитория панель только обновляется.
+        # Channel changed: install the new channel's version, even a lower one.
+        # This package only: apk upgrade --available re-resolves the whole system
+        # and overwrites foreign files (e.g. a custom core over the sing-box package).
+        # On the first setup the panel is only upgraded.
+        panel_switch_channel || failed=1
     elif [ "$PKG_IS_APK" -eq 1 ]; then
         run apk upgrade luci-app-singbox-ui || failed=1
     else
